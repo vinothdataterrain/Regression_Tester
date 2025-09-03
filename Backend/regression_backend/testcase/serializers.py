@@ -25,15 +25,10 @@ class TestCaseSerializer(serializers.ModelSerializer):
         steps_data = validated_data.pop("steps", [])
         testcase = TestCase.objects.create(**validated_data)
 
-        # Use a list to store created steps
-        created_steps = []
         for idx, step in enumerate(steps_data):
-            created_step = TestStep.objects.create(testcase=testcase, order=idx + 1, **step)
-            created_steps.append(created_step)
+            TestStep.objects.create(testcase=testcase, order=idx + 1, **step)
 
-        # Return serializer with steps pre-fetched
-        serializer = TestCaseSerializer(testcase)
-        return serializer.instance
+        return testcase
     
 
     def to_representation(self, instance):
