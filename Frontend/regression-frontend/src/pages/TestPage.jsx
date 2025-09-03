@@ -67,7 +67,12 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
-import { useCreateProjectMutation, usecreateTestCaseMutation } from "../services/runTestCases.api.services";
+import {
+  useCreateProjectMutation,
+  useCreateTestCaseMutation,
+  useGetProjectsQuery,
+  useRunTestCaseMutation,
+} from "../services/runTestCases.api.services";
 
 const PLAYWRIGHT_ACTIONS = [
   {
@@ -174,7 +179,6 @@ const SELECTOR_EXAMPLES = {
 };
 
 export default function TestPage() {
-  const [projects, setProjects] = useState([]);
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
@@ -196,6 +200,12 @@ export default function TestPage() {
 
   const [createProject] = useCreateProjectMutation();
 
+  const [createTestCase] = useCreateTestCaseMutation();
+
+  const [RunTestCase] = useRunTestCaseMutation();
+
+
+  const { data } = useGetProjectsQuery();
 
   const handleAddProject = async () => {
     if (
@@ -211,8 +221,30 @@ export default function TestPage() {
         url: projectUrl,
         description: projectDescription,
       };
+      const myHeaders = new Headers();
+      myHeaders.append("Content-Type", "application/json");
 
-      const result = await createProject(ProjectData).unwrap();
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: JSON.stringify(ProjectData),
+        redirect: "follow",
+      };
+
+      fetch(
+        "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/projects/",
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((result) => console.log(result))
+        .catch((error) => console.error(error));
+
+      //   const formdata = new FormData();
+      //   formdata.append("name",projectTitle);
+      //   formdata.append("url",projectUrl);
+      //   formdata.append("description",projectDescription);
+
+      //   const result = await createProject(formdata).unwrap();
       setProjectTitle("");
       setProjectUrl("");
       setProjectDescription("");
@@ -222,9 +254,9 @@ export default function TestPage() {
         message: "Project added successfully!",
         severity: "success",
       });
-    } catch(error) {
-        console.error('Failed to create project:', error)
-       }
+    } catch (error) {
+      console.error("Failed to create project:", error);
+    }
   };
 
   const handleAddTestCase = (project) => {
@@ -248,97 +280,82 @@ export default function TestPage() {
     );
   };
 
-  const handleSaveTestCase = async (e) => {
-    e.preventDefault();
-    if (!testCaseName.trim() || testSteps.some((step) => !step.action)) {
-      setSnackbar({
-        open: true,
-        message: "Please fill all required fields",
-        severity: "error",
-      });
-      return;
-    }
+  const handleSaveTestCase = async () => {
+  if (!testCaseName.trim() || testSteps.some((step) => !step.action)) {
+    setSnackbar({
+      open: true,
+      message: "Please fill all required fields",
+      severity: "error",
+    });
+    return;
+  }
 
-    const newTestCase = {
-      id: Date.now(),
-      name: testCaseName.trim(),
-      steps: testSteps.filter((step) => step.action),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      lastRun: null,
-      result: null,
-    };
+  try {
 
-    // Update project with new test case
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === selectedProject.id
-          ? { ...project, testCases: [...project.testCases, newTestCase] }
-          : project
-      )
-    );
+    const TestCaseData = {
+    project: selectedProject.id,
+    name: testCaseName,
+    steps: testSteps.map((step) => ({
+      action: step.action,
+      selector: step.field,
+      value: step.value || "",
+    })),
+  };
+    
+    await createTestCase(TestCaseData).unwrap();
 
-    setIsAddingTestCase(false);
-    setSelectedProject(null);
+    //  const myHeaders = new Headers();
+    //   myHeaders.append("Content-Type", "application/json");
+
+    //   const requestOptions = {
+    //     method: "POST",
+    //     headers: myHeaders,
+    //     body: JSON.stringify(TestCaseData),
+    //     redirect: "follow",
+    //   };
+
+    //   fetch(
+    //     "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/testcases/",
+    //     requestOptions
+    //   )
+    //     .then((response) => response.json())
+    //     .then((result) => console.log(result))
+    //     .catch((error) => console.error(error));
+
     setSnackbar({
       open: true,
       message: "Test case added successfully!",
       severity: "success",
     });
-  };
+
+  
+
+    setIsAddingTestCase(false);
+    setSelectedProject(null);
+
+  } catch (error) {
+    console.error("Failed to create test case:", error);
+    setSnackbar({
+      open: true,
+      message: "Failed to add test case",
+      severity: "error",
+    });
+  }
+};
+
 
   const handleRunTestCase = async (project, testCase) => {
     const testId = `${project.id}-${testCase.id}`;
     setRunningTests((prev) => new Set([...prev, testId]));
 
     try {
-      // Prepare payload for backend
-      const payload = {
-        projectUrl: project.url,
-        testCaseName: testCase.name,
-        steps: testCase.steps.map((step) => ({
-          action: step.action,
-          selector: step.field,
-          value: step.value || null,
-        })),
-      };
 
-      // API call to backend (replace with your actual endpoint)
-      const response = await fetch("/api/run-test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      // Update test case with result
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === project.id
-            ? {
-                ...p,
-                testCases: p.testCases.map((tc) =>
-                  tc.id === testCase.id
-                    ? {
-                        ...tc,
-                        status: result.success ? "passed" : "failed",
-                        result: result,
-                        lastRun: new Date().toISOString(),
-                      }
-                    : tc
-                ),
-              }
-            : p
-        )
-      );
+    const result = await RunTestCase({id: testCase.id})
 
       setSnackbar({
         open: true,
-        message: result.success ? "Test passed!" : "Test failed!",
-        severity: result.success ? "success" : "error",
+        message: result?.data?.status === "passed" ?  "Test passed!" : "Test failed!",
+        severity: result?.data?.status === "passed" ? "success" : "error",
       });
     } catch (error) {
       console.error("Test execution failed:", error);
@@ -479,7 +496,12 @@ export default function TestPage() {
               <Button onClick={() => setIsAddingProject(false)} color="inherit">
                 Cancel
               </Button>
-              <Button type="submit" variant="contained" onClick={() => handleAddProject()} startIcon={<AddIcon />}>
+              <Button
+                type="submit"
+                variant="contained"
+                onClick={() => handleAddProject()}
+                startIcon={<AddIcon />}
+              >
                 Add Project
               </Button>
             </DialogActions>
@@ -499,7 +521,7 @@ export default function TestPage() {
               Add Test Case - {selectedProject?.url}
             </Box>
           </DialogTitle>
-          <form onSubmit={handleSaveTestCase}>
+          <form>
             <DialogContent>
               <TextField
                 autoFocus
@@ -600,7 +622,7 @@ export default function TestPage() {
                     </FormControl>
                     <IconButton
                       onClick={() => handleRemoveStep(index)}
-                      disabled={testSteps.length === 1}
+                      disabled={testSteps?.length === 1}
                       color="error"
                       sx={{ mt: 1 }}
                     >
@@ -758,6 +780,7 @@ export default function TestPage() {
                 type="submit"
                 variant="contained"
                 startIcon={<CodeIcon />}
+                onClick={() => handleSaveTestCase()}
               >
                 Save Test Case
               </Button>
@@ -766,7 +789,7 @@ export default function TestPage() {
         </Dialog>
 
         {/* Projects List */}
-        {projects.length === 0 ? (
+        {data?.count === 0 ? (
           <Paper
             sx={{
               p: 6,
@@ -794,8 +817,8 @@ export default function TestPage() {
           </Paper>
         ) : (
           <Grid container spacing={3}>
-            {projects.map((project) => (
-              <Grid item xs={12} key={project.id}>
+            {data?.results?.map((project) => (
+              <Grid item xs={12} key={project?.id}>
                 <Card elevation={2}>
                   <CardContent>
                     <Box
@@ -808,22 +831,25 @@ export default function TestPage() {
                     >
                       <Box>
                         <Typography variant="h6" component="h2" gutterBottom>
-                          {project.description}
+                          {project?.name}
+                        </Typography>
+                        <Typography variant="body" component="h4" gutterBottom>
+                          {project?.description}
                         </Typography>
                         <Typography
                           variant="body2"
                           color="primary"
                           sx={{ mb: 1 }}
                         >
-                          {project.url}
+                          {project?.url}
                         </Typography>
                         <Box sx={{ display: "flex", gap: 1 }}>
                           <Chip
-                            label={`${project.testCases.length} test cases`}
+                            label={`${project?.testcases?.length} test cases`}
                             size="small"
                           />
                           <Chip
-                            label={project.createdAt}
+                            label={project?.created_at}
                             size="small"
                             variant="outlined"
                           />
@@ -840,13 +866,13 @@ export default function TestPage() {
                     </Box>
 
                     {/* Test Cases */}
-                    {project.testCases.length > 0 && (
+                    {project?.testcases?.length > 0 && (
                       <Box sx={{ mt: 3 }}>
                         <Typography variant="subtitle2" gutterBottom>
                           Test Cases:
                         </Typography>
-                        {project.testCases.map((testCase) => (
-                          <Accordion key={testCase.id}>
+                        {project?.testcases?.map((testCase) => (
+                          <Accordion key={testCase?.id}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                               <Box
                                 sx={{
@@ -856,7 +882,7 @@ export default function TestPage() {
                                 }}
                               >
                                 <Typography sx={{ flexGrow: 1 }}>
-                                  {testCase.name}
+                                  {testCase?.name}
                                 </Typography>
                                 <Box
                                   sx={{
@@ -866,19 +892,19 @@ export default function TestPage() {
                                     mr: 2,
                                   }}
                                 >
-                                  {testCase.status === "passed" && (
+                                  {testCase?.status === "passed" && (
                                     <CheckCircleIcon color="success" />
                                   )}
-                                  {testCase.status === "failed" && (
+                                  {testCase?.status === "failed" && (
                                     <ErrorIcon color="error" />
                                   )}
                                   <Chip
-                                    label={testCase.status}
+                                    label={testCase?.status}
                                     size="small"
                                     color={
-                                      testCase.status === "passed"
+                                      testCase?.status === "passed"
                                         ? "success"
-                                        : testCase.status === "failed"
+                                        : testCase?.status === "failed"
                                         ? "error"
                                         : "default"
                                     }
@@ -888,7 +914,7 @@ export default function TestPage() {
                                     variant="contained"
                                     startIcon={
                                       runningTests.has(
-                                        `${project.id}-${testCase.id}`
+                                        `${project?.id}-${testCase?.id}`
                                       ) ? (
                                         <CircularProgress
                                           size={16}
@@ -903,11 +929,11 @@ export default function TestPage() {
                                       handleRunTestCase(project, testCase);
                                     }}
                                     disabled={runningTests.has(
-                                      `${project.id}-${testCase.id}`
+                                      `${project?.id}-${testCase?.id}`
                                     )}
                                   >
                                     {runningTests.has(
-                                      `${project.id}-${testCase.id}`
+                                      `${project?.id}-${testCase?.id}`
                                     )
                                       ? "Running..."
                                       : "Run"}

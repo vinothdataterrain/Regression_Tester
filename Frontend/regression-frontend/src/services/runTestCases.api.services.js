@@ -12,27 +12,26 @@ export const ProjectFeed = api.injectEndpoints({
 
     getProjects: builder.query({
       query: () => ({
-        url: "/get/projects",
+        url: "/projects/",
         method: "GET",
       }),
     }),
 
     createTestCase: builder.mutation({
-      query: ({ projectId, testCaseData }) => ({
-        url: `/projects/${projectId}/test-cases`,
+      query: (testCaseData) => ({
+        url: `/testcases/`,
         method: "POST",
         body: testCaseData,
       }),
     }),
 
     runTestCase: builder.mutation({
-      query: (payload) => ({
-        url: "/run-test",
+      query: ({id}) => ({
+        url: `/testcases/${id}/run/`,
         method: "POST",
-        body: payload,
       }),
     }),
   }),
 });
 
-export const { useCreateProjectMutation, usegetProjectsQuery, usecreateTestCaseMutation, userunTestCaseMutation } = ProjectFeed;
+export const { useCreateProjectMutation, useGetProjectsQuery, useCreateTestCaseMutation, useRunTestCaseMutation } = ProjectFeed;
