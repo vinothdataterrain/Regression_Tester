@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import {
-  AppBar,
-  Toolbar,
   Typography,
   Box,
   Container,
@@ -10,26 +8,17 @@ import {
   Paper,
   Card,
   CardContent,
-  CardActions,
-  Avatar,
   IconButton,
-  Menu,
   MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Chip,
-  Fab,
   Grid,
-  Divider,
   Alert,
   Snackbar,
   InputAdornment,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Select,
   FormControl,
   InputLabel,
@@ -37,12 +26,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   CircularProgress,
-  Collapse,
-  Step,
-  Stepper,
-  StepLabel,
-  StepContent,
-  Tooltip,
   FormHelperText,
 } from "@mui/material";
 import {
@@ -52,9 +35,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
-  AccountCircle,
-  Logout,
-  Settings,
   Link as LinkIcon,
   BugReport as TestIcon,
   ExpandMore as ExpandMoreIcon,
@@ -65,14 +45,17 @@ import {
   Mouse as ClickIcon,
   Keyboard as FillIcon,
   Info as InfoIcon,
+  UploadFile,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
   useCreateProjectMutation,
   useCreateTestCaseMutation,
+  useEditTestCaseMutation,
   useGetProjectsQuery,
   useRunTestCaseMutation,
 } from "../services/runTestCases.api.services";
+import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
 
 const PLAYWRIGHT_ACTIONS = [
   {
@@ -142,7 +125,7 @@ const PLAYWRIGHT_ACTIONS = [
   {
     value: "wait",
     label: "Wait",
-    field: "Milliseconds",
+    field: "Selector, Value",
     icon: "⏳",
     description: "Wait for specified time",
     example: "2000 (for 2 seconds), 5000 (for 5 seconds)",
@@ -191,8 +174,13 @@ export default function TestPage() {
 
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedTestCase, setSelectedTestCase] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isAddingTestCase, setIsAddingTestCase] = useState(false);
+  const [isAddingJson, setIsAddingJson] = useState(false);
+  const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
+
   const [testSteps, setTestSteps] = useState([
     { action: "", field: "", value: "" },
   ]);
@@ -202,8 +190,9 @@ export default function TestPage() {
 
   const [createTestCase] = useCreateTestCaseMutation();
 
-  const [RunTestCase] = useRunTestCaseMutation();
+  const [EditTestCase] = useEditTestCaseMutation();
 
+  const [RunTestCase] = useRunTestCaseMutation();
 
   const { data } = useGetProjectsQuery();
 
@@ -221,6 +210,8 @@ export default function TestPage() {
         url: projectUrl,
         description: projectDescription,
       };
+      // await createProgram(ProjectData);
+
       const myHeaders = new Headers();
       myHeaders.append("Content-Type", "application/json");
 
@@ -232,7 +223,7 @@ export default function TestPage() {
       };
 
       fetch(
-        "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/projects/",
+        "https://wtf6tv6m-8000.inc1.devtunnels.ms/api/projects/",
         requestOptions
       )
         .then((response) => response.json())
@@ -266,6 +257,56 @@ export default function TestPage() {
     setTestSteps([{ action: "", field: "", value: "" }]);
   };
 
+  const handleEditTestCase = async (testCase) => {
+    try {
+      console.log("testing1", selectedProject.id, testCaseName, testSteps);
+      // setIsEditingTestCase(true);
+
+      const updatedTestcaseData = {
+        project: selectedProject.id,
+        name: testCaseName,
+        steps: testSteps.map((step) => ({
+          action: step.action,
+          selector: step.field,
+          value: step.value || "",
+        })),
+      };
+      console.log("testing2");
+      // Call mutation
+      const result = await EditTestCase({
+        id: testCase.id, // test case ID
+        data: updatedTestcaseData,
+      }).unwrap();
+
+      console.log("result", result);
+
+      // ✅ Update UI immediately
+      setSnackbar({
+        open: true,
+        message: "Test case updated successfully!",
+        severity: "success",
+      });
+
+      // Optionally update local state of test cases if you maintain a list
+      // setTestCases(prev =>
+      //   prev.map(tc => (tc.id === testCase.id ? result : tc))
+      // );
+
+      // Reset editing state
+      setIsEditingTestCase(false);
+      setSelectedProject(null);
+      setTestCaseName("");
+      setTestSteps([{ action: "", field: "", value: "" }]);
+    } catch (error) {
+      console.error("Failed to edit test case:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to edit test case",
+        severity: "error",
+      });
+    }
+  };
+
   const handleAddStep = () => {
     setTestSteps((prev) => [...prev, { action: "", field: "", value: "" }]);
   };
@@ -281,80 +322,74 @@ export default function TestPage() {
   };
 
   const handleSaveTestCase = async () => {
-  if (!testCaseName.trim() || testSteps.some((step) => !step.action)) {
-    setSnackbar({
-      open: true,
-      message: "Please fill all required fields",
-      severity: "error",
-    });
-    return;
-  }
+    if (!testCaseName.trim() || testSteps.some((step) => !step.action)) {
+      setSnackbar({
+        open: true,
+        message: "Please fill all required fields",
+        severity: "error",
+      });
+      return;
+    }
 
-  try {
+    try {
+      const data = {
+        project: selectedProject.id,
+        name: testCaseName,
+        steps: testSteps.map((step) => ({
+          action: step.action,
+          selector: step.field,
+          value: step.value || "",
+        })),
+      };
+      await createTestCase(data).unwrap();
 
-    const TestCaseData = {
-    project: selectedProject.id,
-    name: testCaseName,
-    steps: testSteps.map((step) => ({
-      action: step.action,
-      selector: step.field,
-      value: step.value || "",
-    })),
+      //  const myHeaders = new Headers();
+      //   myHeaders.append("Content-Type", "application/json");
+
+      //   const requestOptions = {
+      //     method: "POST",
+      //     headers: myHeaders,
+      //     body: JSON.stringify(TestCaseData),
+      //     redirect: "follow",
+      //   };
+
+      //   fetch(
+      //     "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/testcases/",
+      //     requestOptions
+      //   )
+      //     .then((response) => response.json())
+      //     .then((result) => console.log(result))
+      //     .catch((error) => console.error(error));
+
+      setSnackbar({
+        open: true,
+        message: "Test case added successfully!",
+        severity: "success",
+      });
+
+      setIsAddingTestCase(false);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error("Failed to create test case:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to add test case",
+        severity: "error",
+      });
+    }
   };
-    
-    await createTestCase(TestCaseData).unwrap();
-
-    //  const myHeaders = new Headers();
-    //   myHeaders.append("Content-Type", "application/json");
-
-    //   const requestOptions = {
-    //     method: "POST",
-    //     headers: myHeaders,
-    //     body: JSON.stringify(TestCaseData),
-    //     redirect: "follow",
-    //   };
-
-    //   fetch(
-    //     "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/testcases/",
-    //     requestOptions
-    //   )
-    //     .then((response) => response.json())
-    //     .then((result) => console.log(result))
-    //     .catch((error) => console.error(error));
-
-    setSnackbar({
-      open: true,
-      message: "Test case added successfully!",
-      severity: "success",
-    });
-
-  
-
-    setIsAddingTestCase(false);
-    setSelectedProject(null);
-
-  } catch (error) {
-    console.error("Failed to create test case:", error);
-    setSnackbar({
-      open: true,
-      message: "Failed to add test case",
-      severity: "error",
-    });
-  }
-};
-
 
   const handleRunTestCase = async (project, testCase) => {
     const testId = `${project.id}-${testCase.id}`;
     setRunningTests((prev) => new Set([...prev, testId]));
 
     try {
-
-    const result = await RunTestCase({id: testCase.id})
+      const result = await RunTestCase({ id: testCase.id });
 
       setSnackbar({
         open: true,
-        message: result?.data?.status === "passed" ?  "Test passed!" : "Test failed!",
+        message:
+          result?.data?.status === "passed" ? "Test passed!" : "Test failed!",
         severity: result?.data?.status === "passed" ? "success" : "error",
       });
     } catch (error) {
@@ -373,6 +408,97 @@ export default function TestPage() {
     }
   };
 
+   const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) setSelectedFile(file);
+  };
+
+  // const handleUploadFile = async (project, testcaseName) => {
+  //   // Create a hidden file input dynamically
+  //   const input = document.createElement("input");
+  //   input.type = "file";
+  //   input.accept = ".json"; // only allow JSON files
+
+  //   input.onchange = async (e) => {
+  //     const file = e.target.files[0];
+  //     if (!file) return;
+
+  //     try {
+  //       const text = await selectedFile.text(); // read file content
+  //       console.log("Raw file content:", text);
+  //       const jsonData = JSON.parse(text); // parse JSON
+
+  //       const PlaywrightFormat = convertToPlaywrightFormat(jsonData);
+
+  //       const payloadData = {
+  //         project: project?.id,
+  //         name: testcaseName,
+  //         steps: PlaywrightFormat,
+  //       };
+  //       console.log("payload", payloadData);
+  //       try {
+  //         await createTestCase(payloadData).unwrap();
+  //         onsole.log("Playwright payload successfully sent:", payloadData);
+  //       } catch (error) {
+  //         console.log("error", error);
+  //       }
+  //       console.log("playwrightformat", PlaywrightFormat);
+  //       console.log("Uploaded JSON data:", jsonData);
+
+  //       // You can now store jsonData in state or pass to your processing function
+  //       // setJsonData(jsonData);
+  //     } catch (err) {
+  //       console.error("Failed to read or parse JSON file:", err);
+  //       alert("Invalid JSON file. Please upload a valid JSON file.");
+  //     }
+  //   };
+
+  // };
+
+  const handleUploadFile = async (selectedProject, testCaseName) => {
+    if (!testCaseName.trim()) {
+      alert("Please enter a test case name!");
+      return;
+    }
+    if (!selectedFile) {
+      alert("Please select a JSON file!");
+      return;
+    }
+
+    try {
+      const text = await selectedFile.text();
+      console.log("Raw file content:", text);
+      const jsonData = JSON.parse(text);
+
+      const PlaywrightFormat = convertToPlaywrightFormat(jsonData);
+
+      const payloadData = {
+        project: selectedProject?.id,
+        name: testCaseName,
+        steps: PlaywrightFormat,
+      };
+
+      console.log("payload", payloadData);
+
+      try {
+        await createTestCase(payloadData).unwrap();
+        console.log("Playwright payload successfully sent:", payloadData);
+        // Reset dialog
+        setIsAddingTestCase(false);
+        setIsAddingJson(false)
+        setTestCaseName("");
+        setSelectedFile(null);
+      } catch (apiErr) {
+        console.error("API error while creating test case:", apiErr);
+      }
+
+      console.log("Playwright format:", PlaywrightFormat);
+      console.log("Uploaded JSON data:", jsonData);
+    } catch (err) {
+      console.error("Failed to read or parse JSON file:", err);
+      // alert("Invalid JSON file. Please upload a valid JSON file.");
+    }
+  };
   const getFieldPlaceholder = (action) => {
     const actionConfig = PLAYWRIGHT_ACTIONS.find((a) => a.value === action);
     return actionConfig ? actionConfig.example : "Enter value";
@@ -389,8 +515,6 @@ export default function TestPage() {
   };
 
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
-
-  const handleSubmit = () => {};
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -493,7 +617,13 @@ export default function TestPage() {
               />
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
-              <Button onClick={() => setIsAddingProject(false)} color="inherit">
+              <Button
+                onClick={() => {
+                  setIsAddingProject(false);
+                  setIsEditingTestCase(false);
+                }}
+                color="inherit"
+              >
                 Cancel
               </Button>
               <Button
@@ -510,8 +640,11 @@ export default function TestPage() {
 
         {/* Add Test Case Dialog - Enhanced with Better Guidance */}
         <Dialog
-          open={isAddingTestCase}
-          onClose={() => setIsAddingTestCase(false)}
+          open={isAddingTestCase || isEditingTestCase}
+          onClose={() => {
+            setIsAddingTestCase(false);
+            setIsEditingTestCase(false);
+          }}
           maxWidth="lg"
           fullWidth
         >
@@ -635,9 +768,9 @@ export default function TestPage() {
                       label={
                         step.action === "goto"
                           ? "URL *"
-                          : step.action === "wait"
-                          ? "Milliseconds *"
-                          : step.action.includes("expect")
+                          : // : step.action === "wait"
+                          // ? "Milliseconds *"
+                          step.action.includes("expect")
                           ? "Selector *"
                           : "Selector *"
                       }
@@ -662,7 +795,8 @@ export default function TestPage() {
                     />
                     {(step.action === "fill" ||
                       step.action === "select" ||
-                      step.action === "expect_text") && (
+                      step.action === "expect_text" ||
+                      step.action === "wait") && (
                       <TextField
                         label={
                           step.action === "expect_text"
@@ -771,7 +905,10 @@ export default function TestPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button
-                onClick={() => setIsAddingTestCase(false)}
+                onClick={() => {
+                  setIsAddingTestCase(false);
+                  setIsEditingTestCase(false);
+                }}
                 color="inherit"
               >
                 Cancel
@@ -780,9 +917,18 @@ export default function TestPage() {
                 type="submit"
                 variant="contained"
                 startIcon={<CodeIcon />}
-                onClick={() => handleSaveTestCase()}
+                onClick={() => {
+                  if (isAddingTestCase) {
+                    handleSaveTestCase();
+                  } else if (isEditingTestCase) {
+                    handleEditTestCase(selectedTestCase);
+                  }
+                }}
               >
-                Save Test Case
+                {isEditingTestCase ? "Update Test Case" : "Save Test Case"}
+              </Button>
+              <Button>
+                
               </Button>
             </DialogActions>
           </form>
@@ -863,6 +1009,82 @@ export default function TestPage() {
                       >
                         Add Test Case
                       </Button>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          mx: 2,
+                        }}
+                        onClick={() => {setIsAddingJson(true); setSelectedProject(project);}}
+                        size="small"
+                      >
+                        <UploadFile />
+                      </Button>
+                      <Dialog
+                        open={isAddingJson}
+                        onClose={() => setIsAddingJson(false)}
+                        maxWidth="md"
+                        fullWidth
+                      >
+                        <DialogTitle>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <AddIcon color="primary" />
+                            Add New Testcase
+                          </Box>
+                        </DialogTitle>
+                        <DialogContent>
+                          <TextField
+                            margin="dense"
+                            label="Testcase Name"
+                            multiline
+                            rows={1}
+                            fullWidth
+                            variant="outlined"
+                            value={testCaseName}
+                            onChange={(e) => setTestCaseName(e.target.value)}
+                            required
+                            placeholder="Enter Testcase Title"
+                            sx={{ mb: 2 }}
+                          />
+                          <Button
+                            variant="contained"
+                            component="label"
+                            sx={{ mt: 2 }}
+                          >
+                            Select JSON File
+                             <input
+                              type="file"
+                              accept=".json"
+                              hidden
+                              onChange={handleFileSelect}
+                            />
+                          </Button>
+                           {selectedFile && (
+                            <Typography sx={{ mt: 1 }}>Selected file: {selectedFile.name}</Typography>
+                          )}
+                        </DialogContent>
+                        <DialogActions>
+                          <Button onClick={() => setIsAddingJson(false)}>
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            variant="contained"
+                            onClick={() => {
+                              setIsAddingJson(true);
+                              console.log("project",selectedProject)
+                              handleUploadFile(selectedProject, testCaseName);
+                            }}
+                          >
+                            {"Save Test Case"}
+                          </Button>
+                        </DialogActions>
+                      </Dialog>
                     </Box>
 
                     {/* Test Cases */}
@@ -884,6 +1106,20 @@ export default function TestPage() {
                                 <Typography sx={{ flexGrow: 1 }}>
                                   {testCase?.name}
                                 </Typography>
+                                <EditIcon
+                                  onClick={() => {
+                                    setSelectedTestCase(testCase);
+                                    setTestCaseName(testCase.name);
+                                    setTestSteps(
+                                      testCase.steps.map((step) => ({
+                                        action: step.action || "",
+                                        field: step.selector || "",
+                                        value: step.value || "",
+                                      }))
+                                    );
+                                    setIsEditingTestCase(true);
+                                  }}
+                                />
                                 <Box
                                   sx={{
                                     display: "flex",

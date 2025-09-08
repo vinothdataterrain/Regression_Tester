@@ -1,4 +1,5 @@
-import { api } from "./api";
+import { api, rtkQueryServiceTags } from "./api";
+const {TEST_CASE} = rtkQueryServiceTags;
 
 export const ProjectFeed = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -16,17 +17,34 @@ export const ProjectFeed = api.injectEndpoints({
         method: "GET",
       }),
     }),
-
-    createTestCase: builder.mutation({
-      query: (testCaseData) => ({
-        url: `/testcases/`,
+    createProgram: builder.mutation({
+      query: (data) => ({
+        url: `/programs`,
         method: "POST",
-        body: testCaseData,
+        body: data,
       }),
     }),
 
+    createTestCase: builder.mutation({
+      query: (data) => ({
+        url: `/testcases/`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: [TEST_CASE]
+    }),
+
+    editTestCase: builder.mutation({
+      query: ({id, data}) => ({
+        url: `/testcases/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: [TEST_CASE]
+    }),
+
     runTestCase: builder.mutation({
-      query: ({id}) => ({
+      query: ({ id }) => ({
         url: `/testcases/${id}/run/`,
         method: "POST",
       }),
@@ -34,4 +52,11 @@ export const ProjectFeed = api.injectEndpoints({
   }),
 });
 
-export const { useCreateProjectMutation, useGetProjectsQuery, useCreateTestCaseMutation, useRunTestCaseMutation } = ProjectFeed;
+export const {
+  useCreateProgramMutation,
+  useCreateProjectMutation,
+  useGetProjectsQuery,
+  useCreateTestCaseMutation,
+  useRunTestCaseMutation,
+  useEditTestCaseMutation,
+} = ProjectFeed;
