@@ -27,6 +27,7 @@ import {
   AccordionDetails,
   CircularProgress,
   FormHelperText,
+  Tooltip,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -56,110 +57,9 @@ import {
   useRunTestCaseMutation,
 } from "../services/runTestCases.api.services";
 import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
-
-const PLAYWRIGHT_ACTIONS = [
-  {
-    value: "goto",
-    label: "Go to URL",
-    field: "URL",
-    icon: "🌐",
-    description: "Navigate to a specific URL",
-    example: "https://example.com/login",
-  },
-  {
-    value: "click",
-    label: "Click Element",
-    field: "Selector",
-    icon: "👆",
-    description: "Click on an element (button, link, etc.)",
-    example: 'button[type="submit"], #login-btn, .submit-button',
-  },
-  {
-    value: "fill",
-    label: "Fill Input",
-    field: "Selector, Value",
-    icon: "✏️",
-    description: "Fill an input field with text",
-    example: 'input[name="fieldname"], #fieldname, input[type="fieldname"]',
-  },
-  {
-    value: "select",
-    label: "Select Option",
-    field: "Selector, Value",
-    icon: "📋",
-    description: "Select an option from dropdown",
-    example: 'select[name="country"], #dropdown',
-  },
-  {
-    value: "check",
-    label: "Check Checkbox",
-    field: "Selector",
-    icon: "☑️",
-    description: "Check a checkbox",
-    example: 'input[type="checkbox"], #remember-me',
-  },
-  {
-    value: "uncheck",
-    label: "Uncheck Checkbox",
-    field: "Selector",
-    icon: "☐",
-    description: "Uncheck a checkbox",
-    example: 'input[type="checkbox"], #newsletter',
-  },
-  {
-    value: "expect_text",
-    label: "Expect Text",
-    field: "Selector, Text",
-    icon: "📝",
-    description: "Verify that element contains specific text",
-    example: "h1, .welcome-message, #success-msg",
-  },
-  {
-    value: "expect_visible",
-    label: "Expect Visible",
-    field: "Selector",
-    icon: "👁️",
-    description: "Verify that element is visible on page",
-    example: ".success-message, #dashboard, .user-profile",
-  },
-  {
-    value: "wait",
-    label: "Wait",
-    field: "Selector, Value",
-    icon: "⏳",
-    description: "Wait for specified time",
-    example: "2000 (for 2 seconds), 5000 (for 5 seconds)",
-  },
-];
-
-const SELECTOR_EXAMPLES = {
-  email: [
-    'input[name="fieldname"]',
-    'input[type="fieldname"]',
-    "#fieldname",
-    ".fieldname-input",
-  ],
-  password: [
-    'input[name="password"]',
-    'input[type="password"]',
-    "#password",
-    ".password-input",
-  ],
-  login: [
-    'button[type="submit"]',
-    'input[type="submit"]',
-    "#login-btn",
-    ".login-button",
-    'button:has-text("Login")',
-  ],
-  username: ['input[name="username"]', "#username", ".username-input"],
-  submit: [
-    'button[type="submit"]',
-    'input[type="submit"]',
-    ".submit-btn",
-    'button:has-text("Submit")',
-  ],
-};
+import { toast } from "react-toastify";
+import { useToast } from "../components/toast";
+import { PLAYWRIGHT_ACTIONS, SELECTOR_EXAMPLES } from "../utils/constant";
 
 export default function TestPage() {
   const [isAddingProject, setIsAddingProject] = useState(false);
@@ -175,11 +75,16 @@ export default function TestPage() {
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [isAddingTestCase, setIsAddingTestCase] = useState(false);
   const [isAddingJson, setIsAddingJson] = useState(false);
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
+  const [testProgress, setTestProgress] = useState({});
+
+  const { success } = useToast();
 
   const [testSteps, setTestSteps] = useState([
     { action: "", field: "", value: "" },
@@ -259,7 +164,7 @@ export default function TestPage() {
 
   const handleEditTestCase = async (testCase) => {
     try {
-      console.log("testing1", selectedProject.id, testCaseName, testSteps);
+      console.log("testing1", selectedProject?.id, testCaseName, testSteps);
       // setIsEditingTestCase(true);
 
       const updatedTestcaseData = {
@@ -381,10 +286,24 @@ export default function TestPage() {
 
   const handleRunTestCase = async (project, testCase) => {
     const testId = `${project.id}-${testCase.id}`;
+    setUploadedFile();
     setRunningTests((prev) => new Set([...prev, testId]));
+    setIsRunning(true);
 
     try {
-      const result = await RunTestCase({ id: testCase.id });
+      // const formData = new FormData();
+      // formData.append("file", uploadedFile);
+      const result = await RunTestCase({ id: testCase.id});
+      // const blob = await response.blob();
+      // const url = window.URL.createObjectURL(blob);
+      // const link = document.createElement("a");
+      // link.href = url;
+      // link.setAttribute("download", "results.xlsx");
+      // document.body.appendChild(link);
+      // link.click();
+      // link.parentNode.removeChild(link);
+
+      // toast.success("Test case run completed! File downloaded.");
 
       setSnackbar({
         open: true,
@@ -394,12 +313,9 @@ export default function TestPage() {
       });
     } catch (error) {
       console.error("Test execution failed:", error);
-      setSnackbar({
-        open: true,
-        message: "Test execution failed",
-        severity: "error",
-      });
+      toast.error("Failed to run test case");
     } finally {
+      setIsRunning(false);
       setRunningTests((prev) => {
         const newSet = new Set(prev);
         newSet.delete(testId);
@@ -408,9 +324,15 @@ export default function TestPage() {
     }
   };
 
-   const handleFileSelect = (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) setSelectedFile(file);
+  };
+
+  const handleExcelUpload = (e) => {
+    const ExcelFile = e.target.files[0];
+    if (ExcelFile) setUploadedFile(ExcelFile);
+    success("File uploaded successfully!");
   };
 
   // const handleUploadFile = async (project, testcaseName) => {
@@ -485,7 +407,7 @@ export default function TestPage() {
         console.log("Playwright payload successfully sent:", payloadData);
         // Reset dialog
         setIsAddingTestCase(false);
-        setIsAddingJson(false)
+        setIsAddingJson(false);
         setTestCaseName("");
         setSelectedFile(null);
       } catch (apiErr) {
@@ -927,9 +849,7 @@ export default function TestPage() {
               >
                 {isEditingTestCase ? "Update Test Case" : "Save Test Case"}
               </Button>
-              <Button>
-                
-              </Button>
+              <Button></Button>
             </DialogActions>
           </form>
         </Dialog>
@@ -1009,16 +929,22 @@ export default function TestPage() {
                       >
                         Add Test Case
                       </Button>
-                      <Button
-                        variant="contained"
-                        sx={{
-                          mx: 2,
-                        }}
-                        onClick={() => {setIsAddingJson(true); setSelectedProject(project);}}
-                        size="small"
-                      >
-                        <UploadFile />
-                      </Button>
+                      <Tooltip title="Upload JSON file">
+                        <Button
+                          variant="contained"
+                          sx={{
+                            mx: 2,
+                          }}
+                          onClick={() => {
+                            setIsAddingJson(true);
+                            setSelectedProject(project);
+                          }}
+                          size="small"
+                        >
+                          <UploadFile />
+                        </Button>
+                      </Tooltip>
+
                       <Dialog
                         open={isAddingJson}
                         onClose={() => setIsAddingJson(false)}
@@ -1057,15 +983,17 @@ export default function TestPage() {
                             sx={{ mt: 2 }}
                           >
                             Select JSON File
-                             <input
+                            <input
                               type="file"
                               accept=".json"
                               hidden
                               onChange={handleFileSelect}
                             />
                           </Button>
-                           {selectedFile && (
-                            <Typography sx={{ mt: 1 }}>Selected file: {selectedFile.name}</Typography>
+                          {selectedFile && (
+                            <Typography sx={{ mt: 1 }}>
+                              Selected file: {selectedFile.name}
+                            </Typography>
                           )}
                         </DialogContent>
                         <DialogActions>
@@ -1077,7 +1005,7 @@ export default function TestPage() {
                             variant="contained"
                             onClick={() => {
                               setIsAddingJson(true);
-                              console.log("project",selectedProject)
+                              console.log("project", selectedProject);
                               handleUploadFile(selectedProject, testCaseName);
                             }}
                           >
@@ -1106,8 +1034,28 @@ export default function TestPage() {
                                 <Typography sx={{ flexGrow: 1 }}>
                                   {testCase?.name}
                                 </Typography>
+                                <Tooltip title="Upload CSV or Excel file">
+                                  <Button
+                                    variant="contained"
+                                    component="label"
+                                    size="small"
+                                    sx={{ mx: 2 }}
+                                  >
+                                    <UploadFile />
+                                    <input
+                                      type="file"
+                                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                      hidden
+                                      onChange={handleExcelUpload}
+                                    />
+                                  </Button>
+                                </Tooltip>
                                 <EditIcon
+                                  sx={{
+                                    mx: 2,
+                                  }}
                                   onClick={() => {
+                                    setSelectedProject(project);
                                     setSelectedTestCase(testCase);
                                     setTestCaseName(testCase.name);
                                     setTestSteps(
@@ -1134,7 +1082,7 @@ export default function TestPage() {
                                   {testCase?.status === "failed" && (
                                     <ErrorIcon color="error" />
                                   )}
-                                  <Chip
+                                  {/* <Chip
                                     label={testCase?.status}
                                     size="small"
                                     color={
@@ -1144,7 +1092,7 @@ export default function TestPage() {
                                         ? "error"
                                         : "default"
                                     }
-                                  />
+                                  /> */}
                                   <Button
                                     size="small"
                                     variant="contained"
@@ -1164,9 +1112,7 @@ export default function TestPage() {
                                       e.stopPropagation();
                                       handleRunTestCase(project, testCase);
                                     }}
-                                    disabled={runningTests.has(
-                                      `${project?.id}-${testCase?.id}`
-                                    )}
+                                    // disabled={isRunning || !uploadedFile}
                                   >
                                     {runningTests.has(
                                       `${project?.id}-${testCase?.id}`
@@ -1178,6 +1124,11 @@ export default function TestPage() {
                               </Box>
                             </AccordionSummary>
                             <AccordionDetails>
+                              {uploadedFile && (
+                                <Typography sx={{ mt: 1 }}>
+                                  Uploaded File: {uploadedFile.name}
+                                </Typography>
+                              )}
                               <Typography
                                 variant="body2"
                                 color="text.secondary"

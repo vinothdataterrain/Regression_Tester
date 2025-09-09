@@ -120,14 +120,28 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                                     f"Expected title '{expected_value}' in '{title}'"
                                 )
 
+                        # wait for an action
+                        elif step.action == "wait":
+                            if step.selector:
+                                timeout = int(step.value) if step.value else 5000
+                                await page.wait_for_selector(step.selector, timeout=timeout)
+                            elif step.value:
+                                timeout = int(step.value)
+                                await page.wait_for_timeout(timeout = timeout)
+                            else:
+                                raise ValueError("Wait action requires either selector or value")
+
                         else:
                             raise ValueError(f"Unknown action {step.action}")
 
                         # ✅ Success
-                        results.append({"step_number": step.order + 1, "status": "passed"})
+                        results.append({"action": step.action,
+                            "value": step.value,"step_number": step.order + 1, "status": "passed"})
 
                     except Exception as e:
                         results.append({
+                            "action": step.action,
+                            "value": step.value,
                             "step_number": step.order + 1,
                             "status": "failed",
                             "error": str(e),

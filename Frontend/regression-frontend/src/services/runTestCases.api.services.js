@@ -36,7 +36,7 @@ export const ProjectFeed = api.injectEndpoints({
 
     editTestCase: builder.mutation({
       query: ({id, data}) => ({
-        url: `/testcases/${id}`,
+        url: `/testcases/${id}/`,
         method: "PUT",
         body: data,
       }),
@@ -44,9 +44,10 @@ export const ProjectFeed = api.injectEndpoints({
     }),
 
     runTestCase: builder.mutation({
-      query: ({ id }) => ({
+      query: ({ id}) => ({
         url: `/testcases/${id}/run/`,
         method: "POST",
+        // body: file,
       }),
     }),
   }),

@@ -29,7 +29,22 @@ class TestCaseSerializer(serializers.ModelSerializer):
             TestStep.objects.create(testcase=testcase, order=idx + 1, **step)
 
         return testcase
-    
+    def update(self, instance, validated_data):
+        # Update main testcase fields
+        instance.name = validated_data.get('name', instance.name)
+        instance.project = validated_data.get('project', instance.project)
+        instance.save()
+
+        # Handle steps update
+        steps_data = validated_data.get('steps', [])
+
+        # Clear existing steps and recreate them
+        instance.steps.all().delete()
+
+        for idx, step in enumerate(steps_data):
+            TestStep.objects.create(testcase=instance, order=idx + 1, **step)
+
+        return instance
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
