@@ -19,7 +19,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
     steps = TestStepSerializer(many=True)  # fetch steps for GET
     class Meta:
         model = TestCase
-        fields = ["id", "project", "name", "created_at", "steps"]
+        fields = ["id", "project", "name", "created_at","steps"]
 
     def create(self, validated_data):
         steps_data = validated_data.pop("steps", [])

@@ -27,11 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOWED_ORIGINS = [
-    "https://pbkzt3vt-8000.usw2.devtunnels.ms",
-"http://localhost:5173" ,"https://wtf6tv6m-5173.inc1.devtunnels.ms"
-]
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -41,8 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     'testcase'
 ]
 
@@ -77,38 +73,7 @@ TEMPLATES = [
  
 WSGI_APPLICATION = 'regression_backend.wsgi.application'
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-     "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-]
 
-CORS_ALLOW_METHODS = [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS"
-]
-# CORS_ALLOW_HEADERS = [
-#     'accept',
-#     'accept-encoding',
-#     'authorization',
-#     'content-type',
-#     'dnt',
-#     'origin',
-#     'user-agent',
-#     'x-csrftoken',
-#     'x-requested-with',
-# ]
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -160,3 +125,42 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+}
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",   # React dev server
+    "http://127.0.0.1:3000",
+    "https://pbkzt3vt-8000.usw2.devtunnels.ms",  # your DevTunnel
+    "http://localhost:8000",   # React dev server
+    "http://127.0.0.1:8000",
+]
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CORS_ALLOW_CREDENTIALS = True  # allow cookies/auth headers
+
+# If you want to allow all origins during testing:
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",                  # your local React app
+    "https://pbkzt3vt-8000.usw2.devtunnels.ms",  # your dev tunnel
+]
