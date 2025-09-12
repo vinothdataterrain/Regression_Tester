@@ -1,5 +1,5 @@
 import { api, rtkQueryServiceTags } from "./api";
-const {TEST_CASE} = rtkQueryServiceTags;
+const { TEST_CASE } = rtkQueryServiceTags;
 
 export const ProjectFeed = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -31,25 +31,46 @@ export const ProjectFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: [TEST_CASE]
+      invalidatesTags: [TEST_CASE],
     }),
 
     editTestCase: builder.mutation({
-      query: ({id, data}) => ({
+      query: ({ id, data }) => ({
         url: `/testcases/${id}/`,
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: [TEST_CASE]
+      invalidatesTags: [TEST_CASE],
     }),
 
     runTestCase: builder.mutation({
-      query: ({ id}) => ({
+      query: ({ id, file }) => ({
         url: `/testcases/${id}/run/`,
         method: "POST",
-        // body: file,
+        body: file,
+        responseHandler: async (response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return await response.blob(); // Convert response to Blob
+        },
       }),
     }),
+
+    getSummary: builder.query({
+      query: () => ({
+        url: "/summary",
+        method: "GET",
+      })
+    }),
+
+    runPythonScripts : builder.mutation({
+      query: ( data ) => ({
+          url: "/run-python-scripts",
+          method: "POST",
+          body: data,
+      })
+    })
   }),
 });
 
@@ -60,4 +81,6 @@ export const {
   useCreateTestCaseMutation,
   useRunTestCaseMutation,
   useEditTestCaseMutation,
+  useGetSummaryQuery,
+  useRunPythonScriptsMutation,
 } = ProjectFeed;
