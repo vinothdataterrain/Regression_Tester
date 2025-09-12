@@ -57,7 +57,7 @@ export default function LoginPage() {
         credentials.password === "Admin@123"
       ) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        navigate("/tests");
+        navigate("/dashboard");
       } else {
         setError("Invalid username or password");
         setIsLoading(false);

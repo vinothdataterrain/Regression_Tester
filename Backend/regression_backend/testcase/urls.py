@@ -1,6 +1,6 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import ProjectViewSet, TestCaseViewSet
+from .views import ProjectViewSet, TestCaseViewSet, SummaryView, PlaywrightRunView
 
 # Router automatically generates /projects/ and /testcases/ endpoints
 router = DefaultRouter()
@@ -9,4 +9,6 @@ router.register(r'testcases', TestCaseViewSet, basename='testcase')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('summary', SummaryView.as_view(), name='summary'),  # for summary view
+    path('run-python-scripts', PlaywrightRunView.as_view(), name='run-python-scripts'),  # for raw script execution
 ]

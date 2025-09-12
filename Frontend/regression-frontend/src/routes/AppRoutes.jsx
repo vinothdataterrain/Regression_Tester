@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import TestPage from "../pages/TestPage";
 import { TestCaseProgress } from "../pages/TestProgress";
+import Dashboard from "../pages/dashboard";
+import Navbar from "../components/Navbar";
+import PythonExecutor from "../pages/pythonExecutor";
 
 
 export default function AppRoutes() {
@@ -10,8 +13,12 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route element={<Navbar />}>
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/tests" element={<TestPage />} />
-      <Route path="/testProgress" element={<TestCaseProgress />} />
+      <Route path="/results" element={<TestCaseProgress />} />
+      <Route path="/pythonScripts" element={<PythonExecutor />} />
+      </Route>
     </Routes>
   );
 }

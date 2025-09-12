@@ -291,26 +291,48 @@ export default function TestPage() {
     setIsRunning(true);
 
     try {
-      // const formData = new FormData();
-      // formData.append("file", uploadedFile);
-      const result = await RunTestCase({ id: testCase.id});
-      // const blob = await response.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const link = document.createElement("a");
-      // link.href = url;
-      // link.setAttribute("download", "results.xlsx");
-      // document.body.appendChild(link);
-      // link.click();
-      // link.parentNode.removeChild(link);
+      const formData = new FormData();
+      if (uploadedFile) {
+        formData.append("file", uploadedFile);
+      }
+      const result = await RunTestCase({
+        id: testCase.id,
+        file: formData,
+      }).unwrap();
 
-      // toast.success("Test case run completed! File downloaded.");
+      if (uploadedFile && result instanceof Blob) {
+        const url = window.URL.createObjectURL(result);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "results.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
 
-      setSnackbar({
-        open: true,
-        message:
-          result?.data?.status === "passed" ? "Test passed!" : "Test failed!",
-        severity: result?.data?.status === "passed" ? "success" : "error",
-      });
+        toast.success("Test case run completed! File downloaded.");
+      } else {
+        let json = null;
+        if (result instanceof Blob) {
+          const text = await result.text();
+          try {
+            json = JSON.parse(text);
+          } catch (err) {
+            console.error("Failed to parse Blob to JSON:", err);
+          }
+        } else {
+          json = result;
+        }
+        if (json) {
+          toast.success("Test case run completed!");
+          setSnackbar({
+            open: true,
+            message: `test case ${
+              json.status === "passed" ? "passed" : "failed"
+            }`,
+            severity: `${json.status === "passed" ? "success" : "error"}`,
+          });
+        }
+      }
     } catch (error) {
       console.error("Test execution failed:", error);
       toast.error("Failed to run test case");
@@ -440,9 +462,6 @@ export default function TestPage() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      {/* Navbar */}
-      <Navbar />
-
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         {/* Header */}
         <Box
@@ -455,7 +474,7 @@ export default function TestPage() {
         >
           <Box>
             <Typography
-              variant="h4"
+              variant="h6"
               component="h1"
               gutterBottom
               sx={{ fontWeight: 300 }}
