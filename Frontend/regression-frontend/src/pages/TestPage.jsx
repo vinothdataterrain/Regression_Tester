@@ -60,8 +60,10 @@ import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
 import { toast } from "react-toastify";
 import { useToast } from "../components/toast";
 import { PLAYWRIGHT_ACTIONS, SELECTOR_EXAMPLES } from "../utils/constant";
+import { useNavigate } from "react-router-dom";
 
 export default function TestPage() {
+  const navigate = useNavigate();
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
@@ -295,44 +297,26 @@ export default function TestPage() {
       if (uploadedFile) {
         formData.append("file", uploadedFile);
       }
-      const result = await RunTestCase({
+      const response = await RunTestCase({
         id: testCase.id,
         file: formData,
       }).unwrap();
 
-      if (uploadedFile && result instanceof Blob) {
-        const url = window.URL.createObjectURL(result);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "results.xlsx");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-
-        toast.success("Test case run completed! File downloaded.");
-      } else {
-        let json = null;
-        if (result instanceof Blob) {
-          const text = await result.text();
-          try {
-            json = JSON.parse(text);
-          } catch (err) {
-            console.error("Failed to parse Blob to JSON:", err);
-          }
-        } else {
-          json = result;
-        }
-        if (json) {
-          toast.success("Test case run completed!");
-          setSnackbar({
+      if(uploadedFile && response){
+        navigate(`/results/${testCase.id}`)
+      }
+      else{
+        toast.success("Test case run completed!");
+        setSnackbar({
             open: true,
             message: `test case ${
-              json.status === "passed" ? "passed" : "failed"
+              response?.results?.status === "passed" ? "passed" : "failed"
             }`,
-            severity: `${json.status === "passed" ? "success" : "error"}`,
+            severity: `${response?.results?.status === "passed" ? "success" : "error"}`,
           });
-        }
+
       }
+
     } catch (error) {
       console.error("Test execution failed:", error);
       toast.error("Failed to run test case");

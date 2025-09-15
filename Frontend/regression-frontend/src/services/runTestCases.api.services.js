@@ -52,12 +52,12 @@ export const ProjectFeed = api.injectEndpoints({
         url: `/testcases/${id}/run/`,
         method: "POST",
         body: file,
-        responseHandler: async (response) => {
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          return  file ?  await response.blob() : response; // Convert response to Blob
-        },
+        // responseHandler: async (response) => {
+        //   if (!response.ok) {
+        //     throw new Error("Network response was not ok");
+        //   }
+        //   return  file ?  await response.blob() : response; // Convert response to Blob
+        // },
       }),
     }),
 

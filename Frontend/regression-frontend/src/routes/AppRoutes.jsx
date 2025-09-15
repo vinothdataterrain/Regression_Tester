@@ -2,10 +2,10 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import TestPage from "../pages/TestPage";
-import { TestCaseProgress } from "../pages/TestProgress";
 import Dashboard from "../pages/dashboard";
 import Navbar from "../components/Navbar";
 import PythonExecutor from "../pages/pythonExecutor";
+import TestCaseProgress from "../pages/TestProgress";
 
 
 export default function AppRoutes() {
