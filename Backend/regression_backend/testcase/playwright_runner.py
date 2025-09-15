@@ -50,7 +50,7 @@ async def run_testcase_async(steps, values=None):
             raw_value = step.get("value") if isinstance(step, dict) else None
             step_order = step.get("order", idx - 1) if isinstance(step, dict) else idx - 1
             step_url = step.get("url") if isinstance(step, dict) else None
-
+            form_errors = []
             try:
                 final_url = step_url 
                 step_value = resolve_step_value(raw_value)
@@ -129,7 +129,49 @@ async def run_testcase_async(steps, values=None):
                     title = await page.title()
                     if expected not in title:
                         raise AssertionError(f"Expected title '{expected}' in '{title}'")
+                elif action == "validate_form":
+                  
 
+                    # Grab all inputs, selects, textareas
+                    fields = await page.query_selector_all("input, select, textarea")
+
+                    for idx, field in enumerate(fields, start=1):
+                        field_name = (
+                            await field.get_attribute("name")
+                            or await field.get_attribute("id")
+                            or await field.get_attribute("placeholder")
+                            or f"field_{idx}"
+                        )
+
+                        # Get browser-side validation message
+                        msg = await field.evaluate("el => el.validationMessage")
+
+                        if msg.strip() != "":
+                            form_errors.append({
+                                "field": field_name,
+                                "error": msg
+                            })
+                    screenshots_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
+                    os.makedirs(screenshots_dir, exist_ok=True)
+                    name = f"assert{step_order}_passed.png"
+                    screenshot_path = os.path.join(screenshots_dir, name)
+                    await page.screenshot(path=screenshot_path, full_page=True)
+                    screenshot_url = os.path.join(settings.MEDIA_URL, "screenshots", name)
+                    if form_errors:
+                        results.append({
+                            "action": "validate_form",
+                            "status": "failed",
+                            "error": form_errors,
+                            "screenshot": screenshot_url,
+                        })
+                        # Stop further steps if you want strict mode
+                        break
+                    else:
+                        results.append({
+                            "action": "validate_form",
+                            "status": "passed",
+                            "screenshot": screenshot_url,
+                        })
                 else:
                     raise ValueError(f"Unknown action '{action}'")
                 screenshots_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
@@ -137,17 +179,19 @@ async def run_testcase_async(steps, values=None):
 
                 filename = f"final{uuid.uuid1()}_passed.png"
                 file_path = os.path.join(screenshots_dir, filename)
-
+               
                 if(idx== len(steps)):
                     await page.screenshot(path=file_path, full_page=True)
-                results.append({
-                    "action": action,
-                    "value": raw_value,
-                    "step_number": step_order + 1,
-                    "status": "passed"
-                })
+                if action != "validate_form":
+                    results.append({
+                        "action": action,
+                        "value": raw_value,
+                        "step_number": step_order + 1,
+                        "status": "passed"
+                    })
                 if os.path.exists(file_path) and results:
-                    results[-1]["screenshot"] = file_path  
+                    screenshot_url = os.path.join(settings.MEDIA_URL, "screenshots", filename)
+                    results[-1]["screenshot"] = screenshot_url
 
             except Exception as exc:
                 screenshots_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
@@ -156,13 +200,14 @@ async def run_testcase_async(steps, values=None):
                 filename = f"final{uuid.uuid1().hex}_passed.png"
                 file_path = os.path.join(screenshots_dir, filename)
                 await page.screenshot(path=file_path, full_page=True)
+                screenshot_url = os.path.join(settings.MEDIA_URL, "screenshots", filename)
                 results.append({
                     "action": action,
                     "value": raw_value,
                     "step_number": step_order + 1,
                     "status": "failed",
                     "error": str(exc),
-                    "screenshot": file_path,
+                    "screenshot": screenshot_url,
                 })
                 # stop on first failure per your earlier flow
                 break

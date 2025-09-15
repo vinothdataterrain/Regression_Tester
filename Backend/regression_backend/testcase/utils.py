@@ -83,12 +83,12 @@ def generate_html_report(testcase_id, results):
         </tr>
         {''.join([
             f"<tr class='{step['status']}'>"
-            f"<td>{step['step_number']}</td>"
+            f"<td>{step['step_number'] if 'step_number' in step else ''}</td>"
             f"<td>{step['action']}</td>"
-            f"<td>{step['value']}</td>"
+            f"<td>{step['value'] if 'value' in step else ''}</td>"
             f"<td>{step['status'].capitalize()}</td>"
-            f"<td>{step.get('error','')}</td>"
-            f"<td>{f'<img src=\"{settings.MEDIA_URL}{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
+            f"<td>{step.get('error','') if 'error' in step else ''}</td>"
+            f"<td>{f'<img src=\"http:127.0.0.1:8000{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
             "</tr>"
             for step in results
         ])}
