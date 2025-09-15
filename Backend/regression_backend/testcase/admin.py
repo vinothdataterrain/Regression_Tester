@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, TestCase, TestStep
+from .models import Project, TestCase, TestStep,TestRun
 
 # Inline for TestStep inside TestCase
 class TestStepInline(admin.TabularInline):  # or StackedInline
@@ -31,3 +31,7 @@ class TestCaseAdmin(admin.ModelAdmin):
 @admin.register(TestStep)
 class TestStepAdmin(admin.ModelAdmin):
     list_display = ("order", "action", "selector", "value", "url", "testcase")
+
+@admin.register(TestRun)
+class TestRunAdmin(admin.ModelAdmin):
+    list_display = ("testcase", "result_file", "status", "progress")

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 
-const Navbar = ({ children }) => {
+const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -54,14 +54,14 @@ const Navbar = ({ children }) => {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg font-bold">🧪</span>
               </div>
-              <h1 className="text-[20px] font-semibold text-gray-900">
+              <h4 className="text-[20px] font-semibold text-gray-900">
                 Playwright Testing Suite
-              </h1>
+              </h4>
             </div>
 
             {/* Right side - User Menu */}
             <div className="flex items-center space-x-4">
-              <div className="text-right hidden sm:block">
+              <div className="text-right">
                 <div className="text-sm font-medium text-gray-900">Admin</div>
                 <div className="text-xs text-gray-500">admin@socialroots.ai</div>
               </div>
@@ -108,7 +108,7 @@ const Navbar = ({ children }) => {
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white p-2 m-2  border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             {navigationItems.map((item) => (

@@ -43,6 +43,10 @@ export const ProjectFeed = api.injectEndpoints({
       invalidatesTags: [TEST_CASE],
     }),
 
+    getTaskStatus: builder.query({
+      query: (id)=> `/testcases/${id}/task-status/`
+    }),
+
     runTestCase: builder.mutation({
       query: ({ id, file }) => ({
         url: `/testcases/${id}/run/`,
@@ -52,7 +56,7 @@ export const ProjectFeed = api.injectEndpoints({
           if (!response.ok) {
             throw new Error("Network response was not ok");
           }
-          return await response.blob(); // Convert response to Blob
+          return  file ?  await response.blob() : response; // Convert response to Blob
         },
       }),
     }),
@@ -78,6 +82,7 @@ export const {
   useCreateProgramMutation,
   useCreateProjectMutation,
   useGetProjectsQuery,
+  useGetTaskStatusQuery,
   useCreateTestCaseMutation,
   useRunTestCaseMutation,
   useEditTestCaseMutation,

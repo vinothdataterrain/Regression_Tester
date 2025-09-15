@@ -17,6 +17,7 @@ export default function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/tests" element={<TestPage />} />
       <Route path="/results" element={<TestCaseProgress />} />
+      <Route path="/results/:id" element={<TestCaseProgress />} />
       <Route path="/pythonScripts" element={<PythonExecutor />} />
       </Route>
     </Routes>

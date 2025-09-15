@@ -1,4 +1,6 @@
 from django.db import models
+import uuid
+
 
 class Project(models.Model):
     name = models.CharField(max_length=200)
@@ -35,3 +37,13 @@ class TestStep(models.Model):
 
     def __str__(self):
         return f"{self.testcase.name} [Step {self.order}: {self.action}]"
+class TestRun(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid1, editable=False)
+    testcase = models.ForeignKey("TestCase", on_delete=models.CASCADE, related_name="runs")
+    result_file = models.FileField(upload_to="results/", null=True, blank=True)
+    status = models.CharField(max_length=20, default="queued")  # queued, running, completed, failed
+    progress = models.CharField(max_length=50, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Run {self.id} for {self.testcase.name}"
