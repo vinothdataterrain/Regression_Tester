@@ -88,7 +88,7 @@ def generate_html_report(testcase_id, results):
             f"<td>{step['value'] if 'value' in step else ''}</td>"
             f"<td>{step['status'].capitalize()}</td>"
             f"<td>{step.get('error','') if 'error' in step else ''}</td>"
-            f"<td>{f'<img src=\"http:127.0.0.1:8000{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
+            f"<td>{f'<img src=\"{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
             "</tr>"
             for step in results
         ])}

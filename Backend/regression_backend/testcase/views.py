@@ -26,7 +26,7 @@ import io
 import base64
 from .utils import generate_html_report
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()
+    queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
     permission_classes=[AllowAny]
     def list(self, request, *args, **kwargs):

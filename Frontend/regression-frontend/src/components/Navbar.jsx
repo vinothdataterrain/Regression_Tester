@@ -12,8 +12,8 @@ const Navbar = () => {
   if(path === '/dashboard'){
     setActiveTab('dashboard');
   }
-  else if(path === '/tests'){
-    setActiveTab('tests')
+  if(path === '/projects'){
+    setActiveTab('projects');
   }
   else if(path === '/results'){
     setActiveTab('results')
@@ -28,7 +28,7 @@ const Navbar = () => {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', path : '/dashboard' },
-    { id: 'tests', label: 'Tests', icon: '🧪', path: '/tests' },
+     { id: 'projects', label: 'Projects', icon: '📊', path : '/projects' },
     { id: 'results', label: 'Results', icon: '📋', path: '/results' },
     { id: 'pythonScripts', label: 'Python Scripts', icon: '', path: '/pythonScripts'},
   ];
@@ -44,7 +44,7 @@ const Navbar = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen w-full  bg-gray-50">
       {/* Navbar */}
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

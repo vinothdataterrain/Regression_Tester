@@ -11,6 +11,14 @@ export const ProjectFeed = api.injectEndpoints({
       }),
     }),
 
+    updateProject: builder.mutation({
+      query: ({id, data}) => ({
+        url: `/projects/${id}/`,
+        method: "PUT",
+        body: data,
+      }),
+    }),
+
     getProjects: builder.query({
       query: () => ({
         url: "/projects/",
@@ -91,4 +99,5 @@ export const {
   useEditTestCaseMutation,
   useGetSummaryQuery,
   useRunPythonScriptsMutation,
+  useUpdateProjectMutation,
 } = ProjectFeed;

@@ -6,6 +6,7 @@ import Dashboard from "../pages/dashboard";
 import Navbar from "../components/Navbar";
 import PythonExecutor from "../pages/pythonExecutor";
 import TestCaseProgress from "../pages/TestProgress";
+import Project from "../pages/projects";
 
 
 export default function AppRoutes() {
@@ -15,7 +16,8 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<Navbar />}>
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/tests" element={<TestPage />} />
+      <Route path="/projects" element={<Project />} />
+      <Route path="/projects/:projectId" element={<TestPage />} />
       <Route path="/results" element={<TestCaseProgress />} />
       <Route path="/results/:id" element={<TestCaseProgress />} />
       <Route path="/pythonScripts" element={<PythonExecutor />} />

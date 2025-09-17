@@ -1,3 +1,5 @@
+export const DOMAIN = "http://127.0.0.1:8000/"
+
 export const PLAYWRIGHT_ACTIONS = [
   {
     value: "goto",
@@ -101,3 +103,20 @@ export const SELECTOR_EXAMPLES = {
     'button:has-text("Submit")',
   ],
 };
+
+export function formatTableNullValues(rowData) {
+  const formattedEmpty = rowData?.map((item, index) => {
+    const formattedItem = {}
+    for (let key in item) {
+      if (item[key] === "" || item[key] === null || item[key] === undefined) {
+        formattedItem[key] = ""
+      }
+      else {
+        formattedItem[key] = item[key]
+      }
+    }
+    return formattedItem;
+  })
+  return formattedEmpty
+
+}

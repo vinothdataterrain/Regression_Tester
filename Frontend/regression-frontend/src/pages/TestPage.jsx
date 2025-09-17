@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Typography,
   Box,
@@ -28,6 +28,9 @@ import {
   CircularProgress,
   FormHelperText,
   Tooltip,
+  Breadcrumbs,
+  Link,
+  Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -47,6 +50,9 @@ import {
   Keyboard as FillIcon,
   Info as InfoIcon,
   UploadFile,
+  FileDownload,
+  ArrowBack as ArrowBackIcon,
+  Launch as LaunchIcon,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
@@ -59,12 +65,17 @@ import {
 import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
 import { toast } from "react-toastify";
 import { useToast } from "../components/toast";
-import { PLAYWRIGHT_ACTIONS, SELECTOR_EXAMPLES } from "../utils/constant";
-import { useNavigate } from "react-router-dom";
+import {
+  PLAYWRIGHT_ACTIONS,
+  SELECTOR_EXAMPLES,
+  DOMAIN,
+} from "../utils/constant";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function TestPage() {
   const navigate = useNavigate();
-  const [isAddingProject, setIsAddingProject] = useState(false);
+  const { projectId } = useParams();
+  const [currentProject, setCurrentProject] = useState(null);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -84,7 +95,7 @@ export default function TestPage() {
   const [isAddingJson, setIsAddingJson] = useState(false);
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
-  const [testProgress, setTestProgress] = useState({});
+  const [reportPath, setReportPath] = useState(null);
 
   const { success } = useToast();
 
@@ -94,68 +105,22 @@ export default function TestPage() {
   const [runningTests, setRunningTests] = useState(new Set());
 
   const [createProject] = useCreateProjectMutation();
-
   const [createTestCase] = useCreateTestCaseMutation();
-
   const [EditTestCase] = useEditTestCaseMutation();
-
   const [RunTestCase] = useRunTestCaseMutation();
 
-  const { data } = useGetProjectsQuery();
+  const { data, isLoading, error } = useGetProjectsQuery();
 
-  const handleAddProject = async () => {
-    if (
-      !projectTitle.trim() ||
-      !projectUrl.trim() ||
-      !projectDescription.trim()
-    )
-      return;
-
-    try {
-      const ProjectData = {
-        name: projectTitle,
-        url: projectUrl,
-        description: projectDescription,
-      };
-      // await createProgram(ProjectData);
-
-      const myHeaders = new Headers();
-      myHeaders.append("Content-Type", "application/json");
-
-      const requestOptions = {
-        method: "POST",
-        headers: myHeaders,
-        body: JSON.stringify(ProjectData),
-        redirect: "follow",
-      };
-
-      fetch(
-        "https://wtf6tv6m-8000.inc1.devtunnels.ms/api/projects/",
-        requestOptions
-      )
-        .then((response) => response.json())
-        .then((result) => console.log(result))
-        .catch((error) => console.error(error));
-
-      //   const formdata = new FormData();
-      //   formdata.append("name",projectTitle);
-      //   formdata.append("url",projectUrl);
-      //   formdata.append("description",projectDescription);
-
-      //   const result = await createProject(formdata).unwrap();
-      setProjectTitle("");
-      setProjectUrl("");
-      setProjectDescription("");
-      setIsAddingProject("");
-      setSnackbar({
-        open: true,
-        message: "Project added successfully!",
-        severity: "success",
-      });
-    } catch (error) {
-      console.error("Failed to create project:", error);
+  // Find the current project based on projectId
+  useEffect(() => {
+    if (data?.results && projectId) {
+      const projectIdNum = parseInt(projectId, 10);
+      const project = data.results.find(p => p.id === projectIdNum);
+      setCurrentProject(project);
+      setSelectedProject(project);
     }
-  };
+  }, [data, projectId]);
+
 
   const handleAddTestCase = (project) => {
     setSelectedProject(project);
@@ -166,9 +131,6 @@ export default function TestPage() {
 
   const handleEditTestCase = async (testCase) => {
     try {
-      console.log("testing1", selectedProject?.id, testCaseName, testSteps);
-      // setIsEditingTestCase(true);
-
       const updatedTestcaseData = {
         project: selectedProject.id,
         name: testCaseName,
@@ -178,28 +140,16 @@ export default function TestPage() {
           value: step.value || "",
         })),
       };
-      console.log("testing2");
-      // Call mutation
       const result = await EditTestCase({
-        id: testCase.id, // test case ID
+        id: testCase.id,
         data: updatedTestcaseData,
       }).unwrap();
-
-      console.log("result", result);
-
-      // ✅ Update UI immediately
       setSnackbar({
         open: true,
         message: "Test case updated successfully!",
         severity: "success",
       });
 
-      // Optionally update local state of test cases if you maintain a list
-      // setTestCases(prev =>
-      //   prev.map(tc => (tc.id === testCase.id ? result : tc))
-      // );
-
-      // Reset editing state
       setIsEditingTestCase(false);
       setSelectedProject(null);
       setTestCaseName("");
@@ -250,24 +200,6 @@ export default function TestPage() {
       };
       await createTestCase(data).unwrap();
 
-      //  const myHeaders = new Headers();
-      //   myHeaders.append("Content-Type", "application/json");
-
-      //   const requestOptions = {
-      //     method: "POST",
-      //     headers: myHeaders,
-      //     body: JSON.stringify(TestCaseData),
-      //     redirect: "follow",
-      //   };
-
-      //   fetch(
-      //     "https://pbkzt3vt-8000.usw2.devtunnels.ms/api/testcases/",
-      //     requestOptions
-      //   )
-      //     .then((response) => response.json())
-      //     .then((result) => console.log(result))
-      //     .catch((error) => console.error(error));
-
       setSnackbar({
         open: true,
         message: "Test case added successfully!",
@@ -302,21 +234,19 @@ export default function TestPage() {
         file: formData,
       }).unwrap();
 
-      if(uploadedFile && response){
-        navigate(`/results/${testCase.id}`)
-      }
-      else{
+      if (uploadedFile && response) {
+        navigate(`/results/${testCase.id}`);
+      } else {
+        setReportPath(response?.report);
         toast.success("Test case run completed!");
         setSnackbar({
-            open: true,
-            message: `test case ${
-              response?.results?.status === "passed" ? "passed" : "failed"
-            }`,
-            severity: `${response?.results?.status === "passed" ? "success" : "error"}`,
-          });
-
+          open: true,
+          message: `test case ${
+            response?.status === "completed" ? "passed" : "failed"
+          }`,
+          severity: `${response?.status === "completed" ? "success" : "error"}`,
+        });
       }
-
     } catch (error) {
       console.error("Test execution failed:", error);
       toast.error("Failed to run test case");
@@ -341,48 +271,6 @@ export default function TestPage() {
     success("File uploaded successfully!");
   };
 
-  // const handleUploadFile = async (project, testcaseName) => {
-  //   // Create a hidden file input dynamically
-  //   const input = document.createElement("input");
-  //   input.type = "file";
-  //   input.accept = ".json"; // only allow JSON files
-
-  //   input.onchange = async (e) => {
-  //     const file = e.target.files[0];
-  //     if (!file) return;
-
-  //     try {
-  //       const text = await selectedFile.text(); // read file content
-  //       console.log("Raw file content:", text);
-  //       const jsonData = JSON.parse(text); // parse JSON
-
-  //       const PlaywrightFormat = convertToPlaywrightFormat(jsonData);
-
-  //       const payloadData = {
-  //         project: project?.id,
-  //         name: testcaseName,
-  //         steps: PlaywrightFormat,
-  //       };
-  //       console.log("payload", payloadData);
-  //       try {
-  //         await createTestCase(payloadData).unwrap();
-  //         onsole.log("Playwright payload successfully sent:", payloadData);
-  //       } catch (error) {
-  //         console.log("error", error);
-  //       }
-  //       console.log("playwrightformat", PlaywrightFormat);
-  //       console.log("Uploaded JSON data:", jsonData);
-
-  //       // You can now store jsonData in state or pass to your processing function
-  //       // setJsonData(jsonData);
-  //     } catch (err) {
-  //       console.error("Failed to read or parse JSON file:", err);
-  //       alert("Invalid JSON file. Please upload a valid JSON file.");
-  //     }
-  //   };
-
-  // };
-
   const handleUploadFile = async (selectedProject, testCaseName) => {
     if (!testCaseName.trim()) {
       alert("Please enter a test case name!");
@@ -395,7 +283,6 @@ export default function TestPage() {
 
     try {
       const text = await selectedFile.text();
-      console.log("Raw file content:", text);
       const jsonData = JSON.parse(text);
 
       const PlaywrightFormat = convertToPlaywrightFormat(jsonData);
@@ -405,13 +292,8 @@ export default function TestPage() {
         name: testCaseName,
         steps: PlaywrightFormat,
       };
-
-      console.log("payload", payloadData);
-
       try {
         await createTestCase(payloadData).unwrap();
-        console.log("Playwright payload successfully sent:", payloadData);
-        // Reset dialog
         setIsAddingTestCase(false);
         setIsAddingJson(false);
         setTestCaseName("");
@@ -419,149 +301,416 @@ export default function TestPage() {
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);
       }
-
-      console.log("Playwright format:", PlaywrightFormat);
-      console.log("Uploaded JSON data:", jsonData);
     } catch (err) {
       console.error("Failed to read or parse JSON file:", err);
-      // alert("Invalid JSON file. Please upload a valid JSON file.");
     }
   };
+
+  const handleDownloadReport = (reportPath) => {
+    if (reportPath) {
+      const url = `${DOMAIN}/media/${reportPath}`;
+      window.open(url, "_blank");
+    } else {
+      toast.error("Report is not available yet!");
+    }
+  };
+
   const getFieldPlaceholder = (action) => {
     const actionConfig = PLAYWRIGHT_ACTIONS.find((a) => a.value === action);
     return actionConfig ? actionConfig.example : "Enter value";
   };
 
-  const getSelectorSuggestions = (field) => {
-    const fieldLower = field.toLowerCase();
-    for (const [key, suggestions] of Object.entries(SELECTOR_EXAMPLES)) {
-      if (fieldLower.includes(key)) {
-        return suggestions;
-      }
-    }
-    return [];
-  };
-
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Loading project data...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ flexGrow: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          <Alert severity="error">
+            Failed to load projects data. Error: {error?.message || 'Unknown error'}
+          </Alert>
+          <Button 
+            startIcon={<ArrowBackIcon />} 
+            onClick={() => navigate('/projects')}
+            sx={{ mt: 2 }}
+          >
+            Back to Projects
+          </Button>
+        </Container>
+      </Box>
+    );
+  }
+
+  if (!currentProject && data?.results) {
+    return (
+      <Box sx={{ flexGrow: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          <Alert severity="warning">
+            Project with ID "{projectId}" not found. Available projects: {data.results.map(p => `${p.id} (${p.name})`).join(', ')}
+          </Alert>
+          <Button 
+            startIcon={<ArrowBackIcon />} 
+            onClick={() => navigate('/projects')}
+            sx={{ mt: 2 }}
+          >
+            Back to Projects
+          </Button>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 4,
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h6"
-              component="h1"
-              gutterBottom
-              sx={{ fontWeight: 300 }}
-            >
-              Test Projects
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Create and manage Playwright test cases for your applications
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setIsAddingProject(true)}
-            size="large"
-            sx={{ borderRadius: 2, textTransform: "none", px: 3 }}
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            onClick={() => navigate('/projects')}
+            sx={{ cursor: 'pointer' }}
           >
-            Add Project
-          </Button>
-        </Box>
+            Projects
+          </Link>
+          <Typography color="text.primary">{currentProject?.name}</Typography>
+        </Breadcrumbs>
 
-        {/* Add Project Dialog */}
-        <Dialog
-          open={isAddingProject}
-          onClose={() => setIsAddingProject(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <AddIcon color="primary" />
-              Add New Project
+        {/* Project Header */}
+        <Card elevation={2} sx={{ mb: 4 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => navigate('/projects')}
+                    variant="outlined"
+                    size="small"
+                  >
+                    Back
+                  </Button>
+                  <Typography variant="h6" component="h1" gutterBottom sx={{ margin: 0 }}>
+                    {currentProject?.name}
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  {currentProject?.description}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LanguageIcon color="primary" />
+                    <Link 
+                      href={currentProject?.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      sx={{ textDecoration: 'none' }}
+                    >
+                      {currentProject?.url}
+                    </Link>
+                    <LaunchIcon sx={{ fontSize: 16 }} />
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    label={`${currentProject?.testcases?.length || 0} test cases`}
+                    size="small"
+                    color="primary"
+                  />
+                  <Chip
+                    label={`Created: ${new Date(currentProject?.created_at).toLocaleDateString()}`}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleAddTestCase(currentProject)}
+                  size="small"
+                >
+                  Add Test Case
+                </Button>
+                <Tooltip title="Upload JSON file">
+                  <Button
+                    variant="outlined"
+                    startIcon={<UploadFile />}
+                    onClick={() => {
+                      setIsAddingJson(true);
+                      setSelectedProject(currentProject);
+                    }}
+                    size="small"
+                  >
+                    Upload JSON
+                  </Button>
+                </Tooltip>
+              </Box>
             </Box>
-          </DialogTitle>
-          <form onSubmit={handleAddProject}>
-            <DialogContent>
-              <TextField
-                margin="dense"
-                label="Project Title"
-                multiline
-                rows={1}
-                fullWidth
-                variant="outlined"
-                value={projectTitle}
-                onChange={(e) => setProjectTitle(e.target.value)}
-                required
-                placeholder="Enter Project Title"
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Project URL"
-                type="url"
-                fullWidth
-                variant="outlined"
-                value={projectUrl}
-                onChange={(e) => setProjectUrl(e.target.value)}
-                required
-                placeholder="https://example.com"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LinkIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                margin="dense"
-                label="Project Description"
-                multiline
-                rows={3}
-                fullWidth
-                variant="outlined"
-                value={projectDescription}
-                onChange={(e) => setProjectDescription(e.target.value)}
-                required
-                placeholder="Describe what this application does and what you want to test..."
-              />
-            </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
+          </CardContent>
+        </Card>
+
+        <Divider sx={{ mb: 4 }} />
+
+        {/* Test Cases Section */}
+        <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
+          Test Cases ({currentProject?.testcases?.length || 0})
+        </Typography>
+
+        {currentProject?.testcases?.length === 0 ? (
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 6 }}>
+              <TestIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                No test cases yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Create your first test case to start automated testing for this project
+              </Typography>
               <Button
-                onClick={() => {
-                  setIsAddingProject(false);
-                  setIsEditingTestCase(false);
-                }}
-                color="inherit"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
                 variant="contained"
-                onClick={() => handleAddProject()}
                 startIcon={<AddIcon />}
+                onClick={() => handleAddTestCase(currentProject)}
+                size="large"
               >
-                Add Project
+                Create First Test Case
               </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+            </CardContent>
+          </Card>
+        ) : (
+          <Grid container spacing={3}>
+            {currentProject?.testcases?.map((testCase) => (
+              <Grid item xs={12} key={testCase?.id}>
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        width: "100%",
+                      }}
+                    >
+                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                        {testCase?.name}
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
+                        {reportPath && !uploadedFile && (
+                          <Tooltip title="Download HTML Report">
+                            <IconButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadReport(reportPath);
+                              }}
+                              color="primary"
+                            >
+                              <FileDownload />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        
+                        <Tooltip title="Upload CSV or Excel file">
+                          <Button
+                            variant="outlined"
+                            component="label"
+                            size="small"
+                            startIcon={<UploadFile />}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Upload Data
+                            <input
+                              type="file"
+                              accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                              hidden
+                              onChange={handleExcelUpload}
+                            />
+                          </Button>
+                        </Tooltip>
+                        
+                        <Tooltip title="Edit Test Case">
+                          <IconButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProject(currentProject);
+                              setSelectedTestCase(testCase);
+                              setTestCaseName(testCase.name);
+                              setTestSteps(
+                                testCase.steps.map((step) => ({
+                                  action: step.action || "",
+                                  field: step.selector || "",
+                                  value: step.value || "",
+                                }))
+                              );
+                              setIsEditingTestCase(true);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          {testCase?.status === "passed" && (
+                            <CheckCircleIcon color="success" />
+                          )}
+                          {testCase?.status === "failed" && (
+                            <ErrorIcon color="error" />
+                          )}
+                          
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={
+                              runningTests.has(`${currentProject?.id}-${testCase?.id}`) ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                <PlayIcon />
+                              )
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRunTestCase(currentProject, testCase);
+                            }}
+                          >
+                            {runningTests.has(`${currentProject?.id}-${testCase?.id}`)
+                              ? "Running..."
+                              : "Run"}
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </AccordionSummary>
+                  
+                  <AccordionDetails>
+                    {uploadedFile && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        Uploaded File: {uploadedFile.name}
+                      </Alert>
+                    )}
+                    
+                    <Typography variant="subtitle2" gutterBottom>
+                      Test Steps:
+                    </Typography>
+                    
+                    {testCase.steps.map((step, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          mb: 1,
+                          p: 2,
+                          bgcolor: "grey.50",
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200'
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            minWidth: 40,
+                            color: "primary.main",
+                            fontWeight: "bold",
+                            textAlign: 'center'
+                          }}
+                        >
+                          {idx + 1}
+                        </Typography>
+                        
+                        <Chip
+                          label={step.action}
+                          size="small"
+                          color="primary"
+                          sx={{ minWidth: 80 }}
+                        />
+                        
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: "monospace",
+                            bgcolor: "white",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 0.5,
+                            border: '1px solid',
+                            borderColor: 'grey.300',
+                            flexGrow: 1
+                          }}
+                        >
+                          {step.selector || step.field}
+                        </Typography>
+                        
+                        {step.value && (
+                          <Typography
+                            variant="body2"
+                            color="success.main"
+                            sx={{ 
+                              fontFamily: "monospace",
+                              fontWeight: 'medium'
+                            }}
+                          >
+                            "{step.value}"
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                    
+                    {testCase.result && (
+                      <Box
+                        sx={{
+                          mt: 3,
+                          p: 2,
+                          bgcolor: testCase.status === "passed" ? "success.light" : "error.light",
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Test Result:
+                          </Typography>
+                          {reportPath && !uploadedFile && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<FileDownload />}
+                              onClick={() => handleDownloadReport(reportPath)}
+                              sx={{ ml: 2 }}
+                            >
+                              Download Report
+                            </Button>
+                          )}
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {testCase.result.message || "Test completed"}
+                        </Typography>
+                        {testCase.lastRun && (
+                          <Typography variant="caption" color="text.secondary">
+                            Run at: {new Date(testCase.lastRun).toLocaleString()}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              </Grid>
+            ))}
+          </Grid>
+        )}
 
         {/* Add Test Case Dialog - Enhanced with Better Guidance */}
         <Dialog
@@ -576,7 +725,7 @@ export default function TestPage() {
           <DialogTitle>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <CodeIcon color="primary" />
-              Add Test Case - {selectedProject?.url}
+              {isEditingTestCase ? "Edit Test Case" : "Add Test Case"} - {selectedProject?.url}
             </Box>
           </DialogTitle>
           <form>
@@ -601,17 +750,11 @@ export default function TestPage() {
               {/* Improved Help Section */}
               <Alert severity="info" sx={{ mb: 3 }}>
                 <Typography variant="body2">
-                  <strong>💡 Selector Tips:</strong>
-                  <br />• Use specific selectors:{" "}
-                  <code>input[name="email"]</code>,{" "}
-                  <code>button[type="submit"]</code>
-                  <br />• For buttons with text:{" "}
-                  <code>button:has-text("Login")</code>
+                  <strong>Selector Tips:</strong>
+                  <br />• Use specific selectors: <code>input[name="email"]</code>, <code>button[type="submit"]</code>
+                  <br />• For buttons with text: <code>button:has-text("Login")</code>
                   <br />• Use IDs when available: <code>#login-btn</code>
-                  <br />• For your login form try:{" "}
-                  <code>input[name="email"]</code>,{" "}
-                  <code>input[name="password"]</code>,{" "}
-                  <code>button[type="submit"]</code>
+                  <br />• For your login form try: <code>input[name="email"]</code>, <code>input[name="password"]</code>, <code>button[type="submit"]</code>
                 </Typography>
               </Alert>
 
@@ -693,9 +836,7 @@ export default function TestPage() {
                       label={
                         step.action === "goto"
                           ? "URL *"
-                          : // : step.action === "wait"
-                          // ? "Milliseconds *"
-                          step.action.includes("expect")
+                          : step.action.includes("expect")
                           ? "Selector *"
                           : "Selector *"
                       }
@@ -852,387 +993,72 @@ export default function TestPage() {
               >
                 {isEditingTestCase ? "Update Test Case" : "Save Test Case"}
               </Button>
-              <Button></Button>
             </DialogActions>
           </form>
         </Dialog>
 
-        {/* Projects List */}
-        {data?.count === 0 ? (
-          <Paper
-            sx={{
-              p: 6,
-              textAlign: "center",
-              bgcolor: "grey.50",
-              border: "2px dashed",
-              borderColor: "grey.300",
-            }}
-          >
-            <TestIcon sx={{ fontSize: 64, color: "grey.400", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No projects yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first project to start building Playwright test cases
-            </Typography>
-            <Button
+        {/* Upload JSON Dialog */}
+        <Dialog
+          open={isAddingJson}
+          onClose={() => setIsAddingJson(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <AddIcon color="primary" />
+              Add New Testcase
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Testcase Name"
+              multiline
+              rows={1}
+              fullWidth
               variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setIsAddingProject(true)}
-              size="large"
+              value={testCaseName}
+              onChange={(e) => setTestCaseName(e.target.value)}
+              required
+              placeholder="Enter Testcase Title"
+              sx={{ mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              component="label"
+              sx={{ mt: 2 }}
             >
-              Add Your First Project
+              Select JSON File
+              <input
+                type="file"
+                accept=".json"
+                hidden
+                onChange={handleFileSelect}
+              />
             </Button>
-          </Paper>
-        ) : (
-          <Grid container spacing={3}>
-            {data?.results?.map((project) => (
-              <Grid item xs={12} key={project?.id}>
-                <Card elevation={2}>
-                  <CardContent>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        mb: 2,
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="h6" component="h2" gutterBottom>
-                          {project?.name}
-                        </Typography>
-                        <Typography variant="body" component="h4" gutterBottom>
-                          {project?.description}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="primary"
-                          sx={{ mb: 1 }}
-                        >
-                          {project?.url}
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          <Chip
-                            label={`${project?.testcases?.length} test cases`}
-                            size="small"
-                          />
-                          <Chip
-                            label={project?.created_at}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </Box>
-                      </Box>
-                      <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => handleAddTestCase(project)}
-                        size="small"
-                      >
-                        Add Test Case
-                      </Button>
-                      <Tooltip title="Upload JSON file">
-                        <Button
-                          variant="contained"
-                          sx={{
-                            mx: 2,
-                          }}
-                          onClick={() => {
-                            setIsAddingJson(true);
-                            setSelectedProject(project);
-                          }}
-                          size="small"
-                        >
-                          <UploadFile />
-                        </Button>
-                      </Tooltip>
-
-                      <Dialog
-                        open={isAddingJson}
-                        onClose={() => setIsAddingJson(false)}
-                        maxWidth="md"
-                        fullWidth
-                      >
-                        <DialogTitle>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            <AddIcon color="primary" />
-                            Add New Testcase
-                          </Box>
-                        </DialogTitle>
-                        <DialogContent>
-                          <TextField
-                            margin="dense"
-                            label="Testcase Name"
-                            multiline
-                            rows={1}
-                            fullWidth
-                            variant="outlined"
-                            value={testCaseName}
-                            onChange={(e) => setTestCaseName(e.target.value)}
-                            required
-                            placeholder="Enter Testcase Title"
-                            sx={{ mb: 2 }}
-                          />
-                          <Button
-                            variant="contained"
-                            component="label"
-                            sx={{ mt: 2 }}
-                          >
-                            Select JSON File
-                            <input
-                              type="file"
-                              accept=".json"
-                              hidden
-                              onChange={handleFileSelect}
-                            />
-                          </Button>
-                          {selectedFile && (
-                            <Typography sx={{ mt: 1 }}>
-                              Selected file: {selectedFile.name}
-                            </Typography>
-                          )}
-                        </DialogContent>
-                        <DialogActions>
-                          <Button onClick={() => setIsAddingJson(false)}>
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            onClick={() => {
-                              setIsAddingJson(true);
-                              console.log("project", selectedProject);
-                              handleUploadFile(selectedProject, testCaseName);
-                            }}
-                          >
-                            {"Save Test Case"}
-                          </Button>
-                        </DialogActions>
-                      </Dialog>
-                    </Box>
-
-                    {/* Test Cases */}
-                    {project?.testcases?.length > 0 && (
-                      <Box sx={{ mt: 3 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Test Cases:
-                        </Typography>
-                        {project?.testcases?.map((testCase) => (
-                          <Accordion key={testCase?.id}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  width: "100%",
-                                }}
-                              >
-                                <Typography sx={{ flexGrow: 1 }}>
-                                  {testCase?.name}
-                                </Typography>
-                                <Tooltip title="Upload CSV or Excel file">
-                                  <Button
-                                    variant="contained"
-                                    component="label"
-                                    size="small"
-                                    sx={{ mx: 2 }}
-                                  >
-                                    <UploadFile />
-                                    <input
-                                      type="file"
-                                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                                      hidden
-                                      onChange={handleExcelUpload}
-                                    />
-                                  </Button>
-                                </Tooltip>
-                                <EditIcon
-                                  sx={{
-                                    mx: 2,
-                                  }}
-                                  onClick={() => {
-                                    setSelectedProject(project);
-                                    setSelectedTestCase(testCase);
-                                    setTestCaseName(testCase.name);
-                                    setTestSteps(
-                                      testCase.steps.map((step) => ({
-                                        action: step.action || "",
-                                        field: step.selector || "",
-                                        value: step.value || "",
-                                      }))
-                                    );
-                                    setIsEditingTestCase(true);
-                                  }}
-                                />
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                    mr: 2,
-                                  }}
-                                >
-                                  {testCase?.status === "passed" && (
-                                    <CheckCircleIcon color="success" />
-                                  )}
-                                  {testCase?.status === "failed" && (
-                                    <ErrorIcon color="error" />
-                                  )}
-                                  {/* <Chip
-                                    label={testCase?.status}
-                                    size="small"
-                                    color={
-                                      testCase?.status === "passed"
-                                        ? "success"
-                                        : testCase?.status === "failed"
-                                        ? "error"
-                                        : "default"
-                                    }
-                                  /> */}
-                                  <Button
-                                    size="small"
-                                    variant="contained"
-                                    startIcon={
-                                      runningTests.has(
-                                        `${project?.id}-${testCase?.id}`
-                                      ) ? (
-                                        <CircularProgress
-                                          size={16}
-                                          color="inherit"
-                                        />
-                                      ) : (
-                                        <PlayIcon />
-                                      )
-                                    }
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRunTestCase(project, testCase);
-                                    }}
-                                    // disabled={isRunning || !uploadedFile}
-                                  >
-                                    {runningTests.has(
-                                      `${project?.id}-${testCase?.id}`
-                                    )
-                                      ? "Running..."
-                                      : "Run"}
-                                  </Button>
-                                </Box>
-                              </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                              {uploadedFile && (
-                                <Typography sx={{ mt: 1 }}>
-                                  Uploaded File: {uploadedFile.name}
-                                </Typography>
-                              )}
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                              >
-                                Test Steps:
-                              </Typography>
-                              {testCase.steps.map((step, idx) => (
-                                <Box
-                                  key={idx}
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 2,
-                                    mb: 1,
-                                    p: 1,
-                                    bgcolor: "grey.50",
-                                    borderRadius: 1,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      minWidth: 60,
-                                      color: "text.secondary",
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    {idx + 1}.
-                                  </Typography>
-                                  <Chip
-                                    label={step.action}
-                                    size="small"
-                                    color="primary"
-                                  />
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      fontFamily: "monospace",
-                                      bgcolor: "white",
-                                      px: 1,
-                                      borderRadius: 0.5,
-                                    }}
-                                  >
-                                    {step.field}
-                                  </Typography>
-                                  {step.value && (
-                                    <Typography
-                                      variant="body2"
-                                      color="success.main"
-                                      sx={{ fontFamily: "monospace" }}
-                                    >
-                                      "{step.value}"
-                                    </Typography>
-                                  )}
-                                </Box>
-                              ))}
-                              {testCase.result && (
-                                <Box
-                                  sx={{
-                                    mt: 2,
-                                    p: 2,
-                                    bgcolor:
-                                      testCase.status === "passed"
-                                        ? "success.light"
-                                        : "error.light",
-                                    borderRadius: 1,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                  >
-                                    Result:{" "}
-                                    {testCase.result.message ||
-                                      "Test completed"}
-                                  </Typography>
-                                  {testCase.lastRun && (
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      Run at:{" "}
-                                      {new Date(
-                                        testCase.lastRun
-                                      ).toLocaleString()}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              )}
-                            </AccordionDetails>
-                          </Accordion>
-                        ))}
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+            {selectedFile && (
+              <Typography sx={{ mt: 1 }}>
+                Selected file: {selectedFile.name}
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsAddingJson(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              onClick={() => {
+                setIsAddingJson(true);
+                handleUploadFile(selectedProject, testCaseName);
+              }}
+            >
+              {"Save Test Case"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
 
       {/* Snackbar */}
