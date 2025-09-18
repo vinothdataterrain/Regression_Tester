@@ -1,15 +1,12 @@
 from rest_framework import viewsets,status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Project, TestCase, TestStep, TestRun
-from rest_framework.decorators import api_view, parser_classes
+from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from .serializers import ProjectSerializer, TestCaseSerializer
+from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from django.db.models import Count, Avg
@@ -332,3 +329,58 @@ class PlaywrightRunView(APIView):
                 "error": f"Unexpected error: {str(e)}",
                 "traceback": traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ScriptProjectViewSet(viewsets.ModelViewSet):
+    queryset = ScriptProject.objects.all()
+    serializer_class = ScriptProjectSerializer
+
+    @action(detail=True, methods=["post"], url_path="add-script")
+    def add_script(self, request, pk=None):
+        project = self.get_object()  # current ScriptProject
+
+        serializer = ScriptCaseSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(project=project)  # attach project
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+   
+class ScriptCaseViewSet(viewsets.ModelViewSet):
+    queryset = ScriptCase.objects.all()
+    serializer_class = ScriptCaseSerializer
+
+    @action(detail=True, methods=["post"], url_path="run")
+    def run_script(self, request, pk=None):
+        """Run the Playwright script for this testcase"""
+        script_case = self.get_object()
+        script_content = script_case.script
+
+        executor = PlaywrightExecutorWithScreenshots()
+        result = executor.execute_script(script_content)
+
+        # Save result in DB
+        script_result = ScriptResult.objects.create(
+            testcase=script_case,
+            status=result["status"],
+            details={
+                "logs": result["logs"],
+                "screenshots": result["screenshots"],
+                "stdout": result["stdout"],
+                "stderr": result["stderr"],
+                "execution_time": result["execution_time"],
+            }
+        )
+
+        return Response(
+            {
+                "id": script_result.id,
+                "status": script_result.status,
+                "logs": result["logs"],
+                "screenshots": result["screenshots"],  # base64 encoded
+                "stdout": result["stdout"],
+                "stderr": result["stderr"],
+                "execution_time": result["execution_time"],
+            },
+            status=status.HTTP_200_OK
+        )
+

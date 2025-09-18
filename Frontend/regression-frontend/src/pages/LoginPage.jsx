@@ -64,7 +64,7 @@ export default function LoginPage() {
       }
       // On successful login, navigate to tests page
     } catch (err) {
-      setError("Invalid username or password");
+      setError("Invalid username or password"+err);
       setIsLoading(false);
     }
   };

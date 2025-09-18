@@ -47,3 +47,27 @@ class TestRun(models.Model):
 
     def __str__(self):
         return f"Run {self.id} for {self.testcase.name}"
+    
+class ScriptProject(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+class ScriptCase(models.Model):
+    project = models.ForeignKey(ScriptProject, related_name="testcases", on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    script = models.JSONField(default=list)  # [{action, selector, value}, ...]
+
+    def __str__(self):
+        return f"{self.project.name} - {self.name}"
+
+class ScriptResult(models.Model):
+    testcase = models.ForeignKey(ScriptCase, related_name="results", on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=[("passed", "Passed"), ("failed", "Failed")])
+    details = models.JSONField(default=dict)  # step-wise results
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.testcase.name} - {self.status} @ {self.created_at}"

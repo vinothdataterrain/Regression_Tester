@@ -50,6 +50,15 @@ export const PLAYWRIGHT_ACTIONS = [
     example: 'input[type="checkbox"], #newsletter',
   },
   {
+  "value": "validate_form",
+  "label": "Validate Form",
+  "field": "Form Selector (optional)",
+  "icon": "📝",
+  "description": "Checks page for browser-side validation errors",
+  "example": "form#loginForm"
+}
+,
+  {
     value: "expect_text",
     label: "Expect Text",
     field: "Selector, Text",
@@ -105,7 +114,7 @@ export const SELECTOR_EXAMPLES = {
 };
 
 export function formatTableNullValues(rowData) {
-  const formattedEmpty = rowData?.map((item, index) => {
+  const formattedEmpty = rowData?.map((item,) => {
     const formattedItem = {}
     for (let key in item) {
       if (item[key] === "" || item[key] === null || item[key] === undefined) {

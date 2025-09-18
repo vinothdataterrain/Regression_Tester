@@ -8,7 +8,7 @@ export const LoginFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: [LOGIN, USER],
+      invalidatesTags: ["LOGIN", "USER"],
     }),
 
   }),

@@ -56,7 +56,6 @@ import {
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
-  useCreateProjectMutation,
   useCreateTestCaseMutation,
   useEditTestCaseMutation,
   useGetProjectsQuery,
@@ -76,9 +75,7 @@ export default function TestPage() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [currentProject, setCurrentProject] = useState(null);
-  const [projectTitle, setProjectTitle] = useState("");
-  const [projectUrl, setProjectUrl] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -88,7 +85,7 @@ export default function TestPage() {
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
+ // const [isRunning, setIsRunning] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isAddingTestCase, setIsAddingTestCase] = useState(false);
@@ -104,7 +101,6 @@ export default function TestPage() {
   ]);
   const [runningTests, setRunningTests] = useState(new Set());
 
-  const [createProject] = useCreateProjectMutation();
   const [createTestCase] = useCreateTestCaseMutation();
   const [EditTestCase] = useEditTestCaseMutation();
   const [RunTestCase] = useRunTestCaseMutation();
@@ -138,9 +134,10 @@ export default function TestPage() {
           action: step.action,
           selector: step.field,
           value: step.value || "",
+           ...(step.url && {url: step.url})
         })),
       };
-      const result = await EditTestCase({
+      await EditTestCase({
         id: testCase.id,
         data: updatedTestcaseData,
       }).unwrap();
@@ -196,6 +193,7 @@ export default function TestPage() {
           action: step.action,
           selector: step.field,
           value: step.value || "",
+          ...(step.url && {url: step.url})
         })),
       };
       await createTestCase(data).unwrap();
@@ -222,7 +220,7 @@ export default function TestPage() {
     const testId = `${project.id}-${testCase.id}`;
     setUploadedFile();
     setRunningTests((prev) => new Set([...prev, testId]));
-    setIsRunning(true);
+    //setIsRunning(true);
 
     try {
       const formData = new FormData();
@@ -251,7 +249,7 @@ export default function TestPage() {
       console.error("Test execution failed:", error);
       toast.error("Failed to run test case");
     } finally {
-      setIsRunning(false);
+      //setIsRunning(false);
       setRunningTests((prev) => {
         const newSet = new Set(prev);
         newSet.delete(testId);
@@ -263,6 +261,7 @@ export default function TestPage() {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) setSelectedFile(file);
+    e.target.value = null;
   };
 
   const handleExcelUpload = (e) => {
@@ -840,9 +839,9 @@ export default function TestPage() {
                           ? "Selector *"
                           : "Selector *"
                       }
-                      value={step.field}
+                      value={step.action === "goto" ? step.url : step.field}
                       onChange={(e) =>
-                        handleStepChange(index, "field", e.target.value)
+                        handleStepChange(index, step.action === "goto" ? "url" : "field", e.target.value)
                       }
                       sx={{ flexGrow: 1 }}
                       required

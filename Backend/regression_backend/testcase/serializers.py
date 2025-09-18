@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, TestCase, TestStep
+from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult
 
 
 class TestStepSerializer(serializers.ModelSerializer):
@@ -59,3 +59,29 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ["id", "name", "url", "description", "created_at", "testcases"]
+
+class ScriptResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScriptResult
+        fields = ["id", "status", "details", "created_at"]
+
+
+class ScriptCaseSerializer(serializers.ModelSerializer):
+    results = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ScriptCase
+        fields = ["id", "name", "script", "results"]
+
+    def get_results(self, obj):
+        # fetch latest 2 results
+        results = obj.results.all().order_by("-created_at")[:2]
+        return ScriptResultSerializer(results, many=True).data
+
+
+class ScriptProjectSerializer(serializers.ModelSerializer):
+    testcases = ScriptCaseSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ScriptProject
+        fields = ["id", "name", "description", "testcases"]
