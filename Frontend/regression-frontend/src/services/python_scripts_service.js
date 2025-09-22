@@ -6,24 +6,36 @@ export const PythonScripts = api.injectEndpoints({
       query: () => '/script-projects/'
     }),
     createScriptProject: builder.mutation({
-        query: (data)=>({
-            url: '/script-projects/',
-            method: "POST",
-            body:data
-        })
+      query: (data) => ({
+        url: "/script-projects/",
+        method: "POST",
+        body: data,
+      }),
     }),
     createScript: builder.mutation({
-      query: ({id,data}) =>({
-       url: `/script-projects/${id}/add-script/` ,
-       method: "POST",
-       body: data 
-      })
-    }) ,
+      query: ({ id, data }) => ({
+        url: `/script-projects/${id}/add-script/`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+    editScript: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/script-case/${id}/`,
+        method: "PUT",
+        body: data,
+      }),
+    }),
     runScript: builder.mutation({
-      query: (id) =>({ url: `/script-case/${id}/run/`, method:"POST"})
-
-    }) 
+      query: (id) => ({ url: `/script-case/${id}/run/`, method: "POST" }),
+    }),
   }),
 });
 
-export const { useGetScriptProjectsQuery,useCreateScriptProjectMutation, useCreateScriptMutation, useRunScriptMutation } = PythonScripts;
+export const {
+  useGetScriptProjectsQuery,
+  useCreateScriptProjectMutation,
+  useCreateScriptMutation,
+  useRunScriptMutation,
+  useEditScriptMutation,
+} = PythonScripts;

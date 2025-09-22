@@ -123,7 +123,7 @@ const TestCaseProgress = () => {
                 borderRadius: '4px'
               }}
             >
-              {params?.row?.run_id ? params.row.run_id.substring(0, 8) + '...' : "..."}
+              {params?.row?.run_id ?? "..."}
             </Typography>
           </div>
         );

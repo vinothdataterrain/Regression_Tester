@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,9 +8,20 @@ import {
   Button,
 } from "@mui/material";
 
-const AddScriptDialog = ({ open, handleClose, projectId, onSubmit }) => {
+const AddScriptDialog = ({ open, handleClose, projectId, script, onSubmit }) => {
   const [scriptName, setScriptName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
+
+  useEffect(() => {
+    if(script){
+      setScriptName(script.name || "");
+      setScriptContent(script.script || "");
+    }
+    else{
+      setScriptName("");
+      setScriptContent("");
+    }
+  },[script]);
 
   const handleSubmit = () => {
     if (!scriptName || !scriptContent) return;
@@ -29,7 +40,7 @@ const AddScriptDialog = ({ open, handleClose, projectId, onSubmit }) => {
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-      <DialogTitle>Add Python Script - {projectId?.name}</DialogTitle>
+      <DialogTitle>{script ? "Edit Python Script" : "Add Python Script"} - {projectId?.name}</DialogTitle>
       <DialogContent dividers>
         {/* Script Name */}
         <TextField
@@ -66,7 +77,7 @@ const AddScriptDialog = ({ open, handleClose, projectId, onSubmit }) => {
           variant="contained"
            className="w-[150px]"
         >
-          Save Script
+          {script ? "Update Script" : "Save Script"}
         </Button>
       </DialogActions>
     </Dialog>

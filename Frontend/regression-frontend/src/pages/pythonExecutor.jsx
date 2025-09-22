@@ -48,12 +48,14 @@ import {
   Cancel,
   FolderOpen,
   Edit,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { useRunPythonScriptsMutation } from "../services/runTestCases.api.services";
 import {
   useCreateScriptMutation,
   useGetScriptProjectsQuery,
   useRunScriptMutation,
+  useEditScriptMutation,
 } from "../services/python_scripts_service";
 import AddScriptProject from "../components/pythonExecutor/addProject";
 import AddScriptDialog from "../components/pythonExecutor/addScript";
@@ -70,9 +72,12 @@ export default function PlaywrightExecutorWithScreenshots() {
   const [addproject, setAddProject] = useState(false);
   const [openProject, setOpenProject] = useState(null);
   const [addScript, setAddScript] = useState(false);
+  const [updateScript, setUpdateScript] = useState(false);
+  const [currentScript, setCurrentScript] = useState(null);
   const { data } = useGetScriptProjectsQuery();
-  const [createScript, { error }] = useCreateScriptMutation();
-  const [runScript,{error: runerror}] =  useRunScriptMutation();
+  const [createScript, {error}] = useCreateScriptMutation();
+  const [runScript, { error: runerror }] = useRunScriptMutation();
+  const [editScript, {error : editerror}] = useEditScriptMutation();
   useEffect(() => {
     setProjects(data);
   }, [data]);
@@ -120,6 +125,8 @@ export default function PlaywrightExecutorWithScreenshots() {
 
   const handleOpenScript = () => {
     setAddScript(!addScript);
+    setUpdateScript(false);
+    setCurrentScript(null);
   };
 
   const navigateScreenshot = (direction) => {
@@ -197,15 +204,15 @@ export default function PlaywrightExecutorWithScreenshots() {
   const toggleProject = (project) => {
     setOpenProject(openProject === project ? null : project);
   };
- 
- const handleScriptRun = async (id) =>{
-  if(id){
-    await runScript(id);
-    if(runerror){
-      console.warn("Error",runerror)
+
+  const handleScriptRun = async (id) => {
+    if (id) {
+      await runScript(id);
+      if (runerror) {
+        console.warn("Error", runerror);
+      }
     }
-  }
- }
+  };
 
   const handleScriptSubmit = async ({ name, script }) => {
     if (name && script) {
@@ -219,6 +226,19 @@ export default function PlaywrightExecutorWithScreenshots() {
       }
     }
   };
+
+  const handleEditScript = async ({name, script}) => {
+    if(name && script && currentScript?.id) {
+      const data = {name: name, script: script};
+      const response = await editScript({id: currentScript?.id, data}).unwrap();
+      if (editerror) {
+        console.log(editerror);
+      }
+      if (response) {
+        handleOpenScript();
+      }
+    }
+  }
 
   return (
     <Box sx={{ p: 3, mx: "auto" }}>
@@ -666,10 +686,11 @@ export default function PlaywrightExecutorWithScreenshots() {
         </DialogContent>
       </Dialog>
       <AddScriptDialog
-        open={addScript}
+        open={addScript || updateScript}
         handleClose={handleOpenScript}
         projectId={openProject}
-        onSubmit={handleScriptSubmit}
+        script={currentScript}
+        onSubmit={addScript ? handleScriptSubmit : handleEditScript}
       />
       <div className="p-6">
         <button
@@ -750,6 +771,7 @@ export default function PlaywrightExecutorWithScreenshots() {
               <button
                 onClick={() => {
                   setAddScript(true);
+                  setCurrentScript(null);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow hover:bg-blue-700 transition"
               >
@@ -773,33 +795,43 @@ export default function PlaywrightExecutorWithScreenshots() {
                     key={tc?.id}
                     className="p-4 border rounded-lg bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md transition-shadow"
                   >
-                    {/* Test Case Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Description
-                          className="text-indigo-500"
-                          fontSize="small"
-                        />
-                        <span className="font-medium text-gray-800">
-                          {tc?.name}
-                        </span>
-                        <Edit
-                          className="text-blue-500"
-                          style={{ fontSize: 20 }}
-                          onClick={() => {
-                            setAddProject(true);
-                          }}
-                        />
-                        <div className=" bg-blue-300 rounded-xl" onClick={()=>handleScriptRun(tc.id)} >
-                          <PlayArrow  />
+                    <Accordion>
+                      {/* Test Case Header */}
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Description
+                              className="text-indigo-500"
+                              fontSize="small"
+                            />
+                            <span className="font-medium text-gray-800">
+                              {tc?.name}
+                            </span>
+                            <Edit
+                              className="text-blue-500"
+                              style={{ fontSize: 20 }}
+                              onClick={() => {
+                                setUpdateScript(true);
+                                setCurrentScript(tc);
+                              }}
+                            />
+                            <div
+                              className=" bg-blue-300 rounded-xl"
+                              onClick={() => handleScriptRun(tc.id)}
+                            >
+                              <PlayArrow />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </AccordionSummary>
 
-                    {/* Script */}
-                    <pre className="bg-gray-100 p-3 rounded text-sm text-gray-700 mb-3 overflow-auto max-h-[300px]">
-                      {tc?.script}
-                    </pre>
+                      <AccordionDetails>
+                        {/* Script */}
+                        <pre className="bg-gray-100 p-3 rounded text-sm text-gray-700 mb-3 overflow-auto max-h-[300px]">
+                          {tc?.script}
+                        </pre>
+                      </AccordionDetails>
+                    </Accordion>
 
                     {/* Results */}
                     <h4 className="font-semibold text-sm text-gray-700 mb-1">
@@ -807,86 +839,88 @@ export default function PlaywrightExecutorWithScreenshots() {
                     </h4>
                     <ul className="space-y-2">
                       {tc.results.map((res) => (
-                       <div>
-                         <li
-                          key={res.id}
-                          className="flex items-center gap-2 text-sm p-2 rounded-md bg-gray-50"
-                        >
-                          {res.status === "passed" ? (
-                            <CheckCircle
-                              className="text-green-600"
-                              fontSize="small"
-                            />
-                          ) : (
-                            <Cancel className="text-red-600" fontSize="small" />
-                          )}
-                          <span
-                            className={`font-bold ${
-                              res.status === "passed"
-                                ? "text-green-700"
-                                : "text-red-700"
-                            }`}
+                        <div>
+                          <li
+                            key={res.id}
+                            className="flex items-center gap-2 text-sm p-2 rounded-md bg-gray-50"
                           >
-                            {res.status.toUpperCase()}
-                          </span>
-                          <span className="text-gray-500 text-xs">
-                            {new Date(res.created_at).toLocaleString()}
-                          </span>
-                        </li>
-                        {
-                        
-                              res?.details.logs && res?.details.logs.length > 0 && (
-                  <Accordion>
-                    <AccordionSummary expandIcon={<ExpandMore />}>
-                      <Typography variant="h6">
-                        Execution Logs ({res.details.logs.length})
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          mb: 1,
-                        }}
-                      >
-                        <Button
-                          startIcon={<Download />}
-                          onClick={downloadLogs}
-                          size="small"
-                          variant="outlined"
-                        >
-                          Download Logs
-                        </Button>
-                      </Box>
-                      <Paper
-                        sx={{
-                          p: 2,
-                          bgcolor: "#1a1a1a",
-                          color: "#00ff00",
-                          fontFamily: "monospace",
-                          fontSize: "0.75rem",
-                          maxHeight: 300,
-                          overflow: "auto",
-                        }}
-                      >
-                        {res?.details.logs.map((log, index) => (
-                          <Typography
-                            key={index}
-                            variant="body2"
-                            sx={{ mb: 0.5, fontFamily: "monospace" }}
-                          >
-                            {log}
-                          </Typography>
-                        ))}
-                      </Paper>
-                    </AccordionDetails>
-                  </Accordion>)
-                          
-                        
-                        }
-                                         
-                         </div>
+                            {res.status === "passed" ? (
+                              <CheckCircle
+                                className="text-green-600"
+                                fontSize="small"
+                              />
+                            ) : (
+                              <Cancel
+                                className="text-red-600"
+                                fontSize="small"
+                              />
+                            )}
+                            <span
+                              className={`font-bold ${
+                                res.status === "passed"
+                                  ? "text-green-700"
+                                  : "text-red-700"
+                              }`}
+                            >
+                              {res.status.toUpperCase()}
+                            </span>
+                            <span className="text-gray-500 text-xs">
+                              {new Date(res.created_at).toLocaleString()}
+                            </span>
+                          </li>
+                          {res?.details.logs &&
+                            res?.details.logs.length > 0 && (
+                              <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />}>
+                                  <Typography variant="h6">
+                                    Execution Logs ({res.details.logs.length})
+                                  </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "flex-end",
+                                      mb: 1,
+                                    }}
+                                  >
+                                    <Button
+                                      startIcon={<Download />}
+                                      onClick={downloadLogs}
+                                      size="small"
+                                      variant="outlined"
+                                    >
+                                      Download Logs
+                                    </Button>
+                                  </Box>
+                                  <Paper
+                                    sx={{
+                                      p: 2,
+                                      bgcolor: "#1a1a1a",
+                                      color: "#00ff00",
+                                      fontFamily: "monospace",
+                                      fontSize: "0.75rem",
+                                      maxHeight: 300,
+                                      overflow: "auto",
+                                    }}
+                                  >
+                                    {res?.details.logs.map((log, index) => (
+                                      <Typography
+                                        key={index}
+                                        variant="body2"
+                                        sx={{
+                                          mb: 0.5,
+                                          fontFamily: "monospace",
+                                        }}
+                                      >
+                                        {log}
+                                      </Typography>
+                                    ))}
+                                  </Paper>
+                                </AccordionDetails>
+                              </Accordion>
+                            )}
+                        </div>
                       ))}
                     </ul>
                   </div>
