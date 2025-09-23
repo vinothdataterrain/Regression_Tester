@@ -424,7 +424,7 @@ export default function Project() {
         }}
       >
         <MenuItem
-          onClick={(e) => {
+          onClick={() => {
             handleClose();
             navigate(`/projects/${selectedItem.id}`);
           }}

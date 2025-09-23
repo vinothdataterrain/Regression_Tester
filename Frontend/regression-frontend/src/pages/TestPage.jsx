@@ -31,6 +31,9 @@ import {
   Breadcrumbs,
   Link,
   Divider,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -81,6 +84,7 @@ export default function TestPage() {
     message: "",
     severity: "success",
   });
+  const [stateOption, setStateOption] = useState(null);
 
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
@@ -189,13 +193,17 @@ export default function TestPage() {
       const data = {
         project: selectedProject.id,
         name: testCaseName,
-        steps: testSteps.map((step) => ({
+        steps:[  ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
+        ...testSteps.map((step) => ({
           action: step.action,
           selector: step.field,
           value: step.value || "",
           ...(step.url && {url: step.url})
         })),
+       ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
+        ]
       };
+    
       await createTestCase(data).unwrap();
 
       setSnackbar({
@@ -369,8 +377,8 @@ export default function TestPage() {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Box className="w-full p-2">
+      
         {/* Breadcrumb Navigation */}
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
           <Link 
@@ -493,7 +501,7 @@ export default function TestPage() {
         ) : (
           <Grid container spacing={3}>
             {currentProject?.testcases?.map((testCase) => (
-              <Grid item xs={12} key={testCase?.id}>
+              <Grid item xs={12} md={6} key={testCase?.id}>
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box
@@ -958,7 +966,14 @@ export default function TestPage() {
                   )}
                 </Paper>
               ))}
-
+              <RadioGroup
+          value={stateOption}
+          onChange={(e) => setStateOption(e.target.value)}
+        >
+          <FormControlLabel value="null" control={<Radio />} label="No state" />
+          <FormControlLabel value="save" control={<Radio />} label="Save state " />
+          <FormControlLabel value="use" control={<Radio />} label="Use existing state" />
+        </RadioGroup>
               <Button
                 startIcon={<AddIcon />}
                 onClick={handleAddStep}
@@ -1058,7 +1073,6 @@ export default function TestPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
 
       {/* Snackbar */}
       <Snackbar

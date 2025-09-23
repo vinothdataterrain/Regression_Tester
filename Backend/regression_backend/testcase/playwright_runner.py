@@ -41,7 +41,15 @@ async def run_testcase_async(steps, values=None):
     results = []
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False,slow_mo=50)
-        page = await browser.new_page()
+        if(steps[0]["action"] == "use"):
+            states_dir = os.path.join(settings.MEDIA_ROOT, "storage_states")
+            os.makedirs(states_dir, exist_ok=True)
+            file_path = os.path.join(states_dir, steps[0]["value"])
+            context = await browser.new_context(storage_state=file_path)
+            steps = steps[1:]
+        else:
+            context = await browser.new_context()
+        page = await context.new_page()
 
         for idx, step in enumerate(steps, start=1):
             # defensive extraction
@@ -172,6 +180,12 @@ async def run_testcase_async(steps, values=None):
                             "status": "passed",
                             "screenshot": screenshot_url,
                         })
+                elif action == "save":
+                    states_dir = os.path.join(settings.MEDIA_ROOT, "storage_states")
+                    os.makedirs(states_dir, exist_ok=True)
+                    file_path = os.path.join(states_dir, step_value)
+                    await context.storage_state(path=file_path)
+                    continue
                 else:
                     raise ValueError(f"Unknown action '{action}'")
                 screenshots_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")

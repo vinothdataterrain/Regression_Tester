@@ -804,7 +804,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                               className="text-indigo-500"
                               fontSize="small"
                             />
-                            <span className="font-medium text-gray-800">
+                            <span className="font-medium text-gray-800" data-tooltip={tc?.name}>
                               {tc?.name}
                             </span>
                             <Edit
@@ -834,7 +834,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                     </Accordion>
 
                     {/* Results */}
-                    <h4 className="font-semibold text-sm text-gray-700 mb-1">
+                    <h4 data-tooltip="results from testcase" className="font-semibold text-sm text-gray-700 mb-1">
                       Results:
                     </h4>
                     <ul className="space-y-2">
