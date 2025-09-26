@@ -108,8 +108,8 @@ const Navbar = () => {
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="bg-white p-2 m-2  border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white p-2 m-4  border-gray-200">
+        <div className="mx-auto  px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             {navigationItems.map((item) => (
               <button

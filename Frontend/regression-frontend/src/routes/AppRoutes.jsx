@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar";
 import PythonExecutor from "../pages/pythonExecutor";
 import TestCaseProgress from "../pages/TestProgress";
 import Project from "../pages/projects";
+import SignUpPage from "../pages/signUp";
 
 
 export default function AppRoutes() {
@@ -14,6 +15,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signUp" element={<SignUpPage />} />
       <Route element={<Navbar />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects" element={<Project />} />

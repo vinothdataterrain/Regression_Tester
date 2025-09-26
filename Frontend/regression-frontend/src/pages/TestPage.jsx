@@ -61,7 +61,7 @@ import Navbar from "../components/Navbar";
 import {
   useCreateTestCaseMutation,
   useEditTestCaseMutation,
-  useGetProjectsQuery,
+  useGetProjectbyIdQuery,
   useRunTestCaseMutation,
 } from "../services/runTestCases.api.services";
 import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
@@ -109,17 +109,16 @@ export default function TestPage() {
   const [EditTestCase] = useEditTestCaseMutation();
   const [RunTestCase] = useRunTestCaseMutation();
 
-  const { data, isLoading, error } = useGetProjectsQuery();
 
-  // Find the current project based on projectId
+  const {data , isLoading, error } = useGetProjectbyIdQuery(projectId);
+ 
+  // Set the current project directly from API response
   useEffect(() => {
-    if (data?.results && projectId) {
-      const projectIdNum = parseInt(projectId, 10);
-      const project = data.results.find(p => p.id === projectIdNum);
-      setCurrentProject(project);
-      setSelectedProject(project);
+    if (data) {
+      setCurrentProject(data);
+      setSelectedProject(data);
     }
-  }, [data, projectId]);
+  }, [data]);
 
 
   const handleAddTestCase = (project) => {
@@ -134,12 +133,15 @@ export default function TestPage() {
       const updatedTestcaseData = {
         project: selectedProject.id,
         name: testCaseName,
-        steps: testSteps.map((step) => ({
+        steps:[  ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
+        ...testSteps.map((step) => ({
           action: step.action,
           selector: step.field,
           value: step.value || "",
-           ...(step.url && {url: step.url})
+          ...(step.url && {url: step.url})
         })),
+       ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
+        ]
       };
       await EditTestCase({
         id: testCase.id,
@@ -175,7 +177,25 @@ export default function TestPage() {
 
   const handleStepChange = (index, field, value) => {
     setTestSteps((prev) =>
-      prev.map((step, i) => (i === index ? { ...step, [field]: value } : step))
+      prev.map((step, i) => {
+        if (i === index) {
+          const updatedStep = { ...step, [field]: value };
+          // If action changes to/from goto, handle field mapping
+          if (field === "action") {
+            if (value === "goto") {
+              // When changing to goto, move field value to url
+              updatedStep.url = step.field || "";
+              updatedStep.field = "";
+            } else if (step.action === "goto") {
+              // When changing from goto, move url to field
+              updatedStep.field = step.url || "";
+              updatedStep.url = "";
+            }
+          }
+          return updatedStep;
+        }
+        return step;
+      })
     );
   };
 
@@ -297,7 +317,11 @@ export default function TestPage() {
       const payloadData = {
         project: selectedProject?.id,
         name: testCaseName,
-        steps: PlaywrightFormat,
+        steps: [
+          ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
+          ...PlaywrightFormat,
+          ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
+        ],
       };
       try {
         await createTestCase(payloadData).unwrap();
@@ -305,6 +329,7 @@ export default function TestPage() {
         setIsAddingJson(false);
         setTestCaseName("");
         setSelectedFile(null);
+        setStateOption(null);
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);
       }
@@ -357,12 +382,12 @@ export default function TestPage() {
     );
   }
 
-  if (!currentProject && data?.results) {
+  if (!currentProject && !isLoading && !error) {
     return (
       <Box sx={{ flexGrow: 1 }}>
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
           <Alert severity="warning">
-            Project with ID "{projectId}" not found. Available projects: {data.results.map(p => `${p.id} (${p.name})`).join(', ')}
+            Project with ID "{projectId}" not found.
           </Alert>
           <Button 
             startIcon={<ArrowBackIcon />} 
@@ -499,19 +524,54 @@ export default function TestPage() {
             </CardContent>
           </Card>
         ) : (
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {currentProject?.testcases?.map((testCase) => (
-              <Grid item xs={12} md={6} key={testCase?.id}>
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box
+                key={testCase?.id}
+                sx={{ 
+                  width: '100%'
+                }}
+              >
+                <Accordion 
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&.MuiAccordion-root': {
+                      '&:before': {
+                        display: 'none'
+                      }
+                    }
+                  }}
+                >
+                  <AccordionSummary 
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{
+                      minHeight: 64,
+                      '&.Mui-expanded': {
+                        minHeight: 64
+                      }
+                    }}
+                  >
                     <Box
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         width: "100%",
+                        minHeight: 40
                       }}
                     >
-                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          flexGrow: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          pr: 1
+                        }}
+                        title={testCase?.name}
+                      >
                         {testCase?.name}
                       </Typography>
                       
@@ -558,8 +618,9 @@ export default function TestPage() {
                               setTestSteps(
                                 testCase.steps.map((step) => ({
                                   action: step.action || "",
-                                  field: step.selector || "",
+                                  field: step.action === "goto" ? (step.url || "") : (step.selector || ""),
                                   value: step.value || "",
+                                  url: step.url || "", // Add URL field for goto actions
                                 }))
                               );
                               setIsEditingTestCase(true);
@@ -601,81 +662,111 @@ export default function TestPage() {
                     </Box>
                   </AccordionSummary>
                   
-                  <AccordionDetails>
+                  <AccordionDetails 
+                    sx={{ 
+                      flexGrow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      pt: 2
+                    }}
+                  >
                     {uploadedFile && (
                       <Alert severity="info" sx={{ mb: 2 }}>
                         Uploaded File: {uploadedFile.name}
                       </Alert>
                     )}
                     
-                    <Typography variant="subtitle2" gutterBottom>
-                      Test Steps:
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                      Test Steps ({testCase.steps.length}):
                     </Typography>
                     
-                    {testCase.steps.map((step, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                          mb: 1,
-                          p: 2,
-                          bgcolor: "grey.50",
-                          borderRadius: 1,
-                          border: '1px solid',
-                          borderColor: 'grey.200'
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
+                    <Box sx={{ maxHeight: 300, overflowY: 'auto', mb: 2 }}>
+                      {testCase.steps.map((step, idx) => (
+                        <Box
+                          key={idx}
                           sx={{
-                            minWidth: 40,
-                            color: "primary.main",
-                            fontWeight: "bold",
-                            textAlign: 'center'
-                          }}
-                        >
-                          {idx + 1}
-                        </Typography>
-                        
-                        <Chip
-                          label={step.action}
-                          size="small"
-                          color="primary"
-                          sx={{ minWidth: 80 }}
-                        />
-                        
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontFamily: "monospace",
-                            bgcolor: "white",
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 0.5,
+                            display: "flex",
+                            alignItems: "center",
+                            minHeight: 60,
+                            gap: 1.5,
+                            mb: 1,
+                            p: 1.5,
+                            bgcolor: "grey.50",
+                            borderRadius: 1,
                             border: '1px solid',
-                            borderColor: 'grey.300',
-                            flexGrow: 1
+                            borderColor: 'grey.200',
+                            '&:last-child': {
+                              mb: 0
+                            }
                           }}
                         >
-                          {step.selector || step.field}
-                        </Typography>
-                        
-                        {step.value && (
                           <Typography
-                            variant="body2"
-                            color="success.main"
-                            sx={{ 
-                              fontFamily: "monospace",
-                              fontWeight: 'medium'
+                            variant="caption"
+                            sx={{
+                              minWidth: 30,
+                              minHeight: 30,
+                              color: "primary.main",
+                              fontWeight: "bold",
+                              textAlign: 'center',
+                              fontSize: '0.75rem'
                             }}
                           >
-                            "{step.value}"
+                            {idx + 1}
                           </Typography>
-                        )}
-                      </Box>
-                    ))}
+                          
+                          <Chip
+                            label={step.action}
+                            size="small"
+                            color="primary"
+                            sx={{ 
+                              minWidth: 70,
+                              fontSize: '0.7rem',
+                              height: 30
+                            }}
+                          />
+                          
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontFamily: "monospace",
+                              bgcolor: "white",
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 0.5,
+                              border: '1px solid',
+                              borderColor: 'grey.300',
+                              flexGrow: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.7rem'
+                            }}
+                            title={step.selector || step.field}
+                          >
+                            {step.selector || step.field}
+                          </Typography>
+                          
+                          {step.value && (
+                            <Typography
+                              variant="caption"
+                              color="success.main"
+                              sx={{ 
+                                fontFamily: "monospace",
+                                fontWeight: 'medium',
+                                fontSize: '0.7rem',
+                                maxWidth: 100,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={step.value}
+                            >
+                              "{step.value}"
+                            </Typography>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
                     
                     {testCase.result && (
                       <Box
@@ -714,9 +805,9 @@ export default function TestPage() {
                     )}
                   </AccordionDetails>
                 </Accordion>
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         )}
 
         {/* Add Test Case Dialog - Enhanced with Better Guidance */}
@@ -843,11 +934,9 @@ export default function TestPage() {
                       label={
                         step.action === "goto"
                           ? "URL *"
-                          : step.action.includes("expect")
-                          ? "Selector *"
                           : "Selector *"
                       }
-                      value={step.action === "goto" ? step.url : step.field}
+                      value={step.action === "goto" ? (step.url || "") : (step.field || "")}
                       onChange={(e) =>
                         handleStepChange(index, step.action === "goto" ? "url" : "field", e.target.value)
                       }
@@ -1056,9 +1145,41 @@ export default function TestPage() {
                 Selected file: {selectedFile.name}
               </Typography>
             )}
+            
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Browser State Options:
+              </Typography>
+              <RadioGroup
+                value={stateOption}
+                onChange={(e) => setStateOption(e.target.value)}
+                sx={{ ml: 1 }}
+              >
+                <FormControlLabel 
+                  value="null" 
+                  control={<Radio />} 
+                  label="No state" 
+                />
+                <FormControlLabel 
+                  value="save" 
+                  control={<Radio />} 
+                  label="Save state after test" 
+                />
+                <FormControlLabel 
+                  value="use" 
+                  control={<Radio />} 
+                  label="Use existing state" 
+                />
+              </RadioGroup>
+            </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIsAddingJson(false)}>
+            <Button onClick={() => {
+              setIsAddingJson(false);
+              setStateOption(null);
+              setSelectedFile(null);
+              setTestCaseName("");
+            }}>
               Cancel
             </Button>
             <Button
