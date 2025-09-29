@@ -54,7 +54,7 @@ const Navbar = () => {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg font-bold">🧪</span>
               </div>
-              <h4 className="text-[20px] font-semibold text-gray-900">
+              <h4 className="text-[12px] md:text-[20px]  font-semibold text-gray-900">
                 Playwright Testing Suite
               </h4>
             </div>
@@ -108,7 +108,7 @@ const Navbar = () => {
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="bg-white p-2 m-2  border-gray-200">
+      <div className="bg-white p-2 m-2 overflow-x-auto border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             {navigationItems.map((item) => (
@@ -135,7 +135,7 @@ const Navbar = () => {
       </main> */}
      
        {/* Main Content Area for Nested Routes */}
-      <main className="flex-1 bg-gray-50 p-4">
+      <main className="flex-1 w-full bg-gray-50 p-4">
         <Outlet />
       </main>
 

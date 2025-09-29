@@ -397,7 +397,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                       >
                         <PhotoCamera />
                         <Typography variant="h6">
-                          Screenshots ({result.screenshots.length})
+                          Screenshots ({result?.details?.screenshots?.length})
                         </Typography>
                       </Box>
                     </AccordionSummary>
@@ -560,7 +560,7 @@ export default function PlaywrightExecutorWithScreenshots() {
             <Box>
               <Typography variant="h6">
                 Screenshot {screenshotIndex + 1} of{" "}
-                {result?.screenshots?.length || 1}
+                {result?.details.screenshots.length || 1}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {selectedScreenshot?.description}
@@ -592,7 +592,7 @@ export default function PlaywrightExecutorWithScreenshots() {
           <Box sx={{ position: "relative", textAlign: "center" }}>
             {selectedScreenshot && (
               <img
-                src={`data:image/png;base64,${selectedScreenshot.data}`}
+                src={`http://127.0.0.1:8000${selectedScreenshot.url}`}
                 alt={selectedScreenshot.description}
                 style={{
                   maxWidth: "100%",
@@ -920,6 +920,72 @@ export default function PlaywrightExecutorWithScreenshots() {
                                 </AccordionDetails>
                               </Accordion>
                             )}
+                            {res?.details.screenshots && res?.details.screenshots.length > 0 && (
+                  <Accordion defaultExpanded>
+                    <AccordionSummary expandIcon={<ExpandMore />}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <PhotoCamera />
+                        <Typography variant="h6">
+                          Screenshots ({res?.details.screenshots.length})
+                        </Typography>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          mb: 2,
+                        }}
+                      >
+                        <Button
+                          startIcon={<Download />}
+                          onClick={downloadAllScreenshots}
+                          size="small"
+                          variant="outlined"
+                        >
+                          Download All
+                        </Button>
+                      </Box>
+
+                      <ImageList sx={{ maxHeight: 400 }} cols={2} gap={8}>
+                        {res?.details.screenshots.map((screenshot, index) => (
+                          <ImageListItem
+                            key={index}
+                            sx={{
+                              cursor: "pointer",
+                              "&:hover": { opacity: 0.8 },
+                            }}
+                            onClick={() =>
+                              openScreenshotModal(screenshot, index)
+                            }
+                          >
+                            <img
+                              src={`http://127.0.0.1:8000${screenshot.url}`}
+                              alt={screenshot.description}
+                              loading="lazy"
+                              style={{ height: 120, objectFit: "cover" }}
+                            />
+                            <ImageListItemBar
+                              title={screenshot.description}
+                              actionIcon={
+                                <Tooltip title="View Full Size">
+                                  <IconButton
+                                    sx={{ color: "rgba(255, 255, 255, 0.54)" }}
+                                  >
+                                    <Visibility />
+                                  </IconButton>
+                                </Tooltip>
+                              }
+                            />
+                          </ImageListItem>
+                        ))}
+                      </ImageList>
+                    </AccordionDetails>
+                  </Accordion>
+                )}
                         </div>
                       ))}
                     </ul>

@@ -34,6 +34,8 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -97,9 +99,10 @@ export default function TestPage() {
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
   const [reportPath, setReportPath] = useState(null);
-
+  
   const { success } = useToast();
-
+  const theme = useTheme();
+  const isMdscreen = useMediaQuery(theme.breakpoints.up("md"));
   const [testSteps, setTestSteps] = useState([
     { action: "", field: "", value: "" },
   ]);
@@ -395,7 +398,7 @@ export default function TestPage() {
         {/* Project Header */}
         <Card elevation={2} sx={{ mb: 4 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box className="flex flex-col space-y-2 md:space-y-0 md:flex-row " sx={{  justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Box sx={{ flexGrow: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <Button
@@ -403,8 +406,9 @@ export default function TestPage() {
                     onClick={() => navigate('/projects')}
                     variant="outlined"
                     size="small"
-                  >
-                    Back
+   
+                    >
+                   { isMdscreen && "Back"}
                   </Button>
                   <Typography variant="h6" component="h1" gutterBottom sx={{ margin: 0 }}>
                     {currentProject?.name}
@@ -499,19 +503,22 @@ export default function TestPage() {
             </CardContent>
           </Card>
         ) : (
-          <Grid container spacing={3}>
+       
+
+        <Grid container spacing={3}>
             {currentProject?.testcases?.map((testCase) => (
-              <Grid item xs={12} md={6} key={testCase?.id}>
+              <Grid size={{ xs: 12, md: 6 }} key={testCase?.id}>
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box
+                    className="flex flex-col md:flex-row  justify-start md:justify-between"
                       sx={{
-                        display: "flex",
+                       
                         alignItems: "center",
                         width: "100%",
                       }}
                     >
-                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                      <Typography className="text-[12px] md:text-lg font-semibold" sx={{ flexGrow: 1 }}>
                         {testCase?.name}
                       </Typography>
                       
@@ -533,12 +540,11 @@ export default function TestPage() {
                         <Tooltip title="Upload CSV or Excel file">
                           <Button
                             variant="outlined"
-                            component="label"
-                            size="small"
                             startIcon={<UploadFile />}
                             onClick={(e) => e.stopPropagation()}
+                            className="rounded-full min-w-4 mx-auto md:rounded-md"
                           >
-                            Upload Data
+                           {isMdscreen && "Upload Data"}
                             <input
                               type="file"
                               accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
@@ -564,6 +570,7 @@ export default function TestPage() {
                               );
                               setIsEditingTestCase(true);
                             }}
+                            className="rounded-full border"
                           >
                             <EditIcon />
                           </IconButton>
@@ -587,14 +594,15 @@ export default function TestPage() {
                                 <PlayIcon />
                               )
                             }
+                            className="p-1 w-8 md:w-auto"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRunTestCase(currentProject, testCase);
                             }}
                           >
-                            {runningTests.has(`${currentProject?.id}-${testCase?.id}`)
+                            {isMdscreen && (runningTests.has(`${currentProject?.id}-${testCase?.id}`)
                               ? "Running..."
-                              : "Run"}
+                              : "Run")}
                           </Button>
                         </Box>
                       </Box>

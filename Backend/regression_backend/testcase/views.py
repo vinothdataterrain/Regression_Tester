@@ -20,7 +20,10 @@ import time
 import contextlib
 import threading
 import io
-import base64
+import os, re
+import uuid
+from django.conf import settings
+from datetime import datetime
 from .utils import generate_html_report
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
@@ -151,33 +154,60 @@ class PlaywrightExecutorWithScreenshots:
         log_entry = f"[{timestamp}] {message}"
         self.logs.append(log_entry)
     
-    def take_screenshot(self, page=None, description="Screenshot"):
-        """Capture screenshot and convert to base64 for frontend display"""
+    
+
+
+    def take_screenshot(self, page=None, description="Screenshot", project_name="default",):
+        """
+        Capture screenshot and save to MEDIA folder (media/screenshots/{project}/...).
+        Returns the URL path instead of base64.
+        """
+        def sanitize_filename(name: str) -> str:
+    
+            return re.sub(r'[<>:"/\\|?*]', '_', name)
         try:
-            # Use provided page or current page
             screenshot_page = page or self.current_page
             if not screenshot_page:
                 self.log("⚠️ No page available for screenshot")
-                return
-            
-            # Take screenshot as bytes
-            screenshot_bytes = screenshot_page.screenshot(full_page=True)
-            
-            # Convert to base64 for JSON response
-            screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
-            
+                return None
+
+            # Ensure project folder exists inside media/screenshots
+            screenshots_dir = os.path.join(settings.MEDIA_ROOT, "screenshots", project_name)
+            os.makedirs(screenshots_dir, exist_ok=True)
+
+            # Generate unique filename
+                # Sanitize description for filename
+            safe_description = sanitize_filename(description.lower().replace(" ", "_"))
+            safe_project_name = sanitize_filename(project_name)
+            print(safe_project_name)
+
+
+        # Generate unique filename
+            filename = f"{safe_description}_{uuid.uuid4().hex}.png"
+            file_path = os.path.join(screenshots_dir, filename)
+
+            # Save screenshot directly to file
+            screenshot_page.screenshot(path=file_path, full_page=True)
+
+            # Build relative MEDIA URL for frontend
+            screenshot_url = os.path.join(settings.MEDIA_URL, "screenshots", project_name, filename)
+
             screenshot_info = {
-                'description': description,
-                'timestamp': datetime.now().isoformat(),
-                'data': screenshot_base64,
-                'url': screenshot_page.url if screenshot_page else 'unknown'
+                "description": description,
+                "timestamp": datetime.now().isoformat(),
+                #"file_path": file_path,    
+                "url": screenshot_url,     
             }
-            
+
             self.screenshots.append(screenshot_info)
-            self.log(f"📸 Screenshot captured: {description}")
-            
+            self.log(f"📸 Screenshot saved: {screenshot_url}")
+
+            return screenshot_info
+
         except Exception as e:
             self.log(f"❌ Failed to capture screenshot: {str(e)}")
+            return None
+
     
     def auto_screenshot_wrapper(self, func, page, description):
         """Wrapper to automatically take screenshots after actions"""
@@ -191,7 +221,7 @@ class PlaywrightExecutorWithScreenshots:
             self.take_screenshot(page, f"Error during: {description}")
             raise e
     
-    def execute_script(self, script_content, timeout=60, auto_screenshots=True):
+    def execute_script(self, script_content, script_name, timeout=60, auto_screenshots=True):
         """Execute Playwright script with screenshot capture"""
         self.start_time = datetime.now()
         self.logs = []
@@ -199,7 +229,7 @@ class PlaywrightExecutorWithScreenshots:
         
         # Enhanced execution environment with screenshot functions
         def enhanced_take_screenshot(page=None, description="Manual Screenshot"):
-            self.take_screenshot(page or self.current_page, description)
+            self.take_screenshot(page or self.current_page, description,project_name=script_name)
         
         def enhanced_goto(page, url, description=None):
             self.log(f"🌐 Navigating to: {url}")
@@ -207,14 +237,14 @@ class PlaywrightExecutorWithScreenshots:
             page.wait_for_load_state('networkidle')
             if auto_screenshots:
                 desc = description or f"Navigation to {url}"
-                self.take_screenshot(page, desc)
+                self.take_screenshot(page, desc,project_name=script_name)
         
         def enhanced_fill(page, selector, value, description=None):
             self.log(f"✏️ Filling '{selector}' with value")
             page.fill(selector, value)
             if auto_screenshots:
                 desc = description or f"Filled {selector}"
-                self.take_screenshot(page, desc)
+                self.take_screenshot(page, desc,project_name=script_name)
         
         def enhanced_click(page, selector, description=None):
             self.log(f"👆 Clicking: {selector}")
@@ -222,7 +252,7 @@ class PlaywrightExecutorWithScreenshots:
             page.wait_for_timeout(500)  # Wait for any animations
             if auto_screenshots:
                 desc = description or f"Clicked {selector}"
-                self.take_screenshot(page, desc)
+                self.take_screenshot(page, desc,project_name=script_name)
         
         script_globals = {
             '__builtins__': __builtins__,
@@ -354,9 +384,10 @@ class ScriptCaseViewSet(viewsets.ModelViewSet):
         """Run the Playwright script for this testcase"""
         script_case = self.get_object()
         script_content = script_case.script
+        script_name = script_case.name
 
         executor = PlaywrightExecutorWithScreenshots()
-        result = executor.execute_script(script_content)
+        result = executor.execute_script(script_content,script_name)
 
         # Save result in DB
         script_result = ScriptResult.objects.create(
