@@ -25,6 +25,13 @@ export const ProjectFeed = api.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    getProjectbyId: builder.query({
+     query: (id) => ({
+      url: `/projects/${id}/`,
+      method: "GET",
+     })
+    }),
     createProgram: builder.mutation({
       query: (data) => ({
         url: `/programs`,
@@ -100,4 +107,5 @@ export const {
   useGetSummaryQuery,
   useRunPythonScriptsMutation,
   useUpdateProjectMutation,
+  useGetProjectbyIdQuery
 } = ProjectFeed;

@@ -17,67 +17,118 @@ import {
   Alert,
 } from "@mui/material";
 import {
-  Lock as LockIcon,
+  PersonAdd as PersonAddIcon,
   Person as PersonIcon,
+  Email as EmailIcon,
+  Lock as LockIcon,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
-import { useLoginMutation } from "../services/login.api.services";
+import { useCreateUserMutation } from "../services/login.api.services";
 import { toast } from "react-toastify";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const navigate = useNavigate();
-  const [credentials, setCredentials] = useState({
+  const [formData, setFormData] = useState({
     username: "",
+    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [
-    loginUser,
+    createUser,
     {
-      isSuccess: isLoginSuccess,
-      isError: isLoginError,
-      error: LoginError,
-      isLoading: isLoading,
+      isSuccess: isRegistrationSuccess,
+      isError: isRegistrationError,
+      error: RegistrationError,
     },
-  ] = useLoginMutation();
+  ] = useCreateUserMutation();
 
   useEffect(() => {
-    if (isLoginSuccess) {
-      toast.success("Successfully Logged in!");
+    if (isRegistrationSuccess) {
+      toast.success("User created successfully!!");
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/login");
       }, 3000);
     }
-    if (isLoginError) {
-      toast.error(LoginError?.data?.detail || "Failed to login");
+    if (isRegistrationError) {
+      toast.error(RegistrationError || "Failed to create user");
     }
-  }, [isLoginSuccess, isLoginError, LoginError]);
+  }, [isRegistrationSuccess, isRegistrationError, RegistrationError]);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+    } else if (formData.username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters";
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    // Terms agreement validation
+    if (!agreeToTerms) {
+      newErrors.terms = "You must agree to the terms and conditions";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setCredentials((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
-    if (error) setError("");
+
+    // Clear specific field error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
-  const handleLogin = async () => {
-    setError("");
+  const handleSignUp = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      const LoginData = {
-        username: credentials.username,
-        password: credentials.password,
+      const SignupData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
       };
-      await loginUser(LoginData);
-    } catch (err) {
-      console.error("failed to login", err);
-      setError("Invalid username or password" + err);
+      await createUser(SignupData).unwrap();
+    } catch (error) {
+      console.error("Failed to create user", error);
+      setErrors({ submit: "Failed to create account. Please try again." });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,7 +140,6 @@ export default function LoginPage() {
     <Box
       sx={{
         minHeight: "100vh",
-        // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -114,7 +164,7 @@ export default function LoginPage() {
               mb: 3,
             }}
           >
-            <LockIcon sx={{ fontSize: 20 }} />
+            <PersonAddIcon sx={{ fontSize: 20 }} />
           </Avatar>
 
           <Typography
@@ -138,10 +188,10 @@ export default function LoginPage() {
               textAlign: "center",
             }}
           >
-            Sign in to access your test suite
+            Create your account
           </Typography>
 
-          {/* Login Card */}
+          {/* SignUp Card */}
           <Paper
             elevation={8}
             sx={{
@@ -162,12 +212,38 @@ export default function LoginPage() {
                 name="username"
                 autoComplete="username"
                 autoFocus
-                value={credentials.username}
+                value={formData.username}
                 onChange={handleInputChange}
+                error={!!errors.username}
+                helperText={errors.username}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 2 }}
+              />
+
+              {/* Email Field */}
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email"
+                name="email"
+                autoComplete="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                error={!!errors.email}
+                helperText={errors.email}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
                     </InputAdornment>
                   ),
                 }}
@@ -183,9 +259,11 @@ export default function LoginPage() {
                 label="Password"
                 type={showPassword ? "text" : "password"}
                 id="password"
-                autoComplete="current-password"
-                value={credentials.password}
+                autoComplete="new-password"
+                value={formData.password}
                 onChange={handleInputChange}
+                error={!!errors.password}
+                helperText={errors.password}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -204,39 +282,48 @@ export default function LoginPage() {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ mb: 3 }}
+                sx={{ mb: 2 }}
               />
 
-              {/* Remember Me & Forgot Password */}
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 3,
-                }}
-              >
+              {/* Terms and Conditions */}
+              <Box sx={{ mb: 2 }}>
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      checked={agreeToTerms}
+                      onChange={(e) => setAgreeToTerms(e.target.checked)}
                       color="primary"
                     />
                   }
-                  label="Remember me"
+                  label={
+                    <Typography variant="body2">
+                      I agree to the{" "}
+                      <Link
+                        href="#"
+                        color="primary"
+                        sx={{ textDecoration: "none" }}
+                      >
+                        Terms and Conditions
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="#"
+                        color="primary"
+                        sx={{ textDecoration: "none" }}
+                      >
+                        Privacy Policy
+                      </Link>
+                    </Typography>
+                  }
                 />
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="primary"
-                  sx={{ textDecoration: "none" }}
-                >
-                  Forgot password?
-                </Link>
+                {errors.terms && (
+                  <Typography variant="caption" color="error" sx={{ ml: 4 }}>
+                    {errors.terms}
+                  </Typography>
+                )}
               </Box>
 
-              {/* Login Button */}
+              {/* SignUp Button */}
               <Button
                 type="submit"
                 fullWidth
@@ -257,9 +344,9 @@ export default function LoginPage() {
                   borderRadius: 2,
                   textTransform: "none",
                 }}
-                onClick={() => handleLogin()}
+                onClick={() => handleSignUp()}
               >
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
 
               <Typography className="text-center">{"OR"}</Typography>
@@ -269,9 +356,9 @@ export default function LoginPage() {
                     alignItems: "center",
                     mt: 1,
                   }}
-                  onClick={() => navigate("/signUp")}
+                  onClick={() => navigate("/login")}
                 >
-                  {"Sign Up"}
+                  {"Already have an account? Login"}
                 </Button>
               </Box>
 
@@ -303,7 +390,7 @@ export default function LoginPage() {
           <Typography
             variant="caption"
             sx={{
-              color: "rgba(255,255,255,0.6)",
+              color: "rgba(0,0,0,0.6)",
               mt: 4,
               textAlign: "center",
             }}

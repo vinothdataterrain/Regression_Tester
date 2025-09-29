@@ -261,9 +261,10 @@ const Dashboard = () => {
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#1565c0'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#1976d2'}
+              onClick={() => navigate("/pythonScripts")}
               >
                 <span>🧪</span>
-                View Tests
+                View Scripts
               </button>
               <button style={{
                 backgroundColor: 'white',
@@ -280,6 +281,7 @@ const Dashboard = () => {
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e3f2fd'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+              onClick={() => navigate("/results")}
               >
                 <span>📋</span>
                 Check Results
@@ -299,7 +301,7 @@ const Dashboard = () => {
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-              onClick={() => navigate("/tests")}
+              onClick={() => navigate("/projects")}
               >
                 <span>➕</span>
                 Create Project

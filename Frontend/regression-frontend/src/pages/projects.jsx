@@ -239,7 +239,10 @@ export default function Project() {
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         }}
       >
-        <CardContent>
+        <CardContent sx={{ 
+          px: 4, 
+          py: 3,
+        }}>
           <Box
             sx={{
               display: "flex",
