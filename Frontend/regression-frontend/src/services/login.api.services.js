@@ -25,6 +25,15 @@ export const LoginFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
+       transformResponse: (response) => {
+        if (response) {
+          localStorage.setItem("access_token", response.access);
+          localStorage.setItem("refresh_token", response.refresh);
+          const decoded = jwtDecode(response.access);
+          return { status: response.status, UserResponse: decoded };
+        }
+        return response;
+      },
     }),
   }),
 });

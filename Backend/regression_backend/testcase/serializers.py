@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult
-
+from rest_framework.fields import CurrentUserDefault
 
 class TestStepSerializer(serializers.ModelSerializer):
     step_number = serializers.SerializerMethodField()
@@ -55,10 +55,11 @@ class TestCaseSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     testcases = TestCaseSerializer(many=True, read_only=True)
+    user = serializers.HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Project
-        fields = ["id", "name", "url", "description", "created_at", "testcases"]
+        fields = ["id", "name", "url", "description", "created_at", "testcases","user"]
 
 class ScriptResultSerializer(serializers.ModelSerializer):
     class Meta:

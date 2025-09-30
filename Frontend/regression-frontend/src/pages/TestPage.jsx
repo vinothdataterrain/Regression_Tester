@@ -429,9 +429,8 @@ export default function TestPage() {
                   <Button
                     startIcon={<ArrowBackIcon />}
                     onClick={() => navigate('/projects')}
-                    variant="outlined"
                     size="small"
-   
+                    className="!rounded-full !border !p-0 md:!p-1"
                     >
                    { isMdscreen && "Back"}
                   </Button>
@@ -600,7 +599,7 @@ export default function TestPage() {
                             variant="outlined"
                             startIcon={<UploadFile />}
                             onClick={(e) => e.stopPropagation()}
-                            className="rounded-full min-w-4 mx-auto md:rounded-md"
+                            //className="rounded-full min-w-4 mx-auto md:rounded-md"
                           >
                            {isMdscreen && "Upload Data"}
                             <input
