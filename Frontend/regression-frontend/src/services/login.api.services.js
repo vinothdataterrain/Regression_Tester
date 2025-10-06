@@ -25,7 +25,7 @@ export const LoginFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-       transformResponse: (response) => {
+      transformResponse: (response) => {
         if (response) {
           localStorage.setItem("access_token", response.access);
           localStorage.setItem("refresh_token", response.refresh);
@@ -35,7 +35,23 @@ export const LoginFeed = api.injectEndpoints({
         return response;
       },
     }),
+
+    userLogout: builder.mutation({
+      query: () => {
+        const access = localStorage.getItem("access_token");
+        const refresh = localStorage.getItem("refresh_token");
+
+        return {
+          url: "/auth/logout/",
+          method: "POST",
+          body: {
+            access,
+            refresh,
+          },
+        };
+      },
+    }),
   }),
 });
 
-export const { useLoginMutation, useCreateUserMutation } = LoginFeed;
+export const { useLoginMutation, useCreateUserMutation, useUserLogoutMutation } = LoginFeed;

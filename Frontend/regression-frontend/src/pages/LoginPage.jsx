@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -24,9 +24,19 @@ import {
 } from "@mui/icons-material";
 import { useLoginMutation } from "../services/login.api.services";
 import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setUserdata } from "../features/userSlice";
+import { jwtDecode } from "jwt-decode";
+import { resetUserInfo } from "../services/loginInfo";
+import { useForm } from "react-hook-form";
+import SuccessGradientMessage from "../components/successPopup";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const RedirectPath =
+    new URLSearchParams(location.search).get("redirect") || "/dashboard";
   const [credentials, setCredentials] = useState({
     username: "",
     password: "",
@@ -34,6 +44,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const { reset } = useForm();
+  const [isBackdropOpen, setIsBackdropOpen] = useState(false);
 
   const [
     loginUser,
@@ -47,15 +59,56 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoginSuccess) {
-      toast.success("Successfully Logged in!");
+      const accessToken = localStorage.getItem("access_token");
+      if (accessToken) {
+        try {
+          const decoded = jwtDecode(accessToken);
+          if (decoded.username && decoded.email) {
+            dispatch(
+              setUserdata({
+                username: decoded.username,
+                email: decoded.email,
+                user_id: decoded.user_id,
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Error decoding access token:", error);
+        }
+      }
+      setIsBackdropOpen(true);
       setTimeout(() => {
-        navigate("/dashboard");
+        setIsBackdropOpen(false);
+        navigate(RedirectPath);
       }, 3000);
     }
     if (isLoginError) {
       toast.error(LoginError?.data?.detail || "Failed to login");
     }
-  }, [isLoginSuccess, isLoginError, LoginError]);
+  }, [
+    isLoginSuccess,
+    isLoginError,
+    LoginError,
+    dispatch,
+    navigate,
+    RedirectPath,
+  ]);
+
+  useEffect(() => {
+    const username = localStorage.getItem("username");
+    dispatch(resetUserInfo());
+    if (localStorage.getItem("rememberMe") === "true") {
+      setRememberMe(true);
+      setCredentials((prev) => ({ ...prev, username }));
+      reset({ username });
+    }
+  }, []);
+
+  const handleRememberMe = () => {
+    localStorage.setItem("rememberMe", !rememberMe);
+    setRememberMe(!rememberMe);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({
@@ -68,6 +121,10 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     setError("");
+
+    if (localStorage.getItem("rememberMe") === "true") {
+      localStorage.setItem("username", credentials.username);
+    }
 
     try {
       const LoginData = {
@@ -220,7 +277,7 @@ export default function LoginPage() {
                   control={
                     <Checkbox
                       checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      onChange={handleRememberMe}
                       color="primary"
                     />
                   }
@@ -312,6 +369,10 @@ export default function LoginPage() {
           </Typography>
         </Box>
       </Container>
+      <SuccessGradientMessage
+        isBackdropOpen={isBackdropOpen}
+        message={"Successfully Logged in!!"}
+      />
     </Box>
   );
 }

@@ -1,11 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useUserLogoutMutation } from '../services/login.api.services';
+import { logout } from '../utils/constant';
+import { useSelector, useDispatch } from 'react-redux';
+import { setUserdata, resetUserdata } from '../features/userSlice';
+import { jwtDecode } from 'jwt-decode';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  const [userLogout] = useUserLogoutMutation();
+  
+
+  const user = useSelector((state) => state.UserInfo.user);
+
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem('access_token');
+    if (accessToken && !user) {
+      try {
+        const decoded = jwtDecode(accessToken);
+        if (decoded.username && decoded.email) {
+          dispatch(setUserdata({
+            username: decoded.username,
+            email: decoded.email,
+            user_id: decoded.user_id
+          }));
+        }
+      } catch (error) {
+        console.error('Error decoding access token:', error);
+        autoLogout();
+      }
+    }
+  }, [dispatch, user]);
 
   useEffect(() => {
     const path = location.pathname
@@ -40,7 +71,9 @@ const Navbar = () => {
 
   const handleLogout = () => {
     setAnchorEl(null);
-    navigate("/login");
+    // Clear user data from Redux store
+    dispatch(resetUserdata());
+    logout({userLogout, navigate})
   }
 
   return (
@@ -62,8 +95,12 @@ const Navbar = () => {
             {/* Right side - User Menu */}
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">Admin</div>
-                <div className="text-xs text-gray-500">admin@socialroots.ai</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {user?.username || 'User'}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {user?.email || 'user@gmail.com'}
+                </div>
               </div>
               
               <div className="relative">
@@ -108,8 +145,8 @@ const Navbar = () => {
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="bg-white p-2 m-4  border-gray-200">
-        <div className="mx-auto  px-4 sm:px-6 lg:px-8">
+      <div className="bg-white p-2 m-4 min-w-32 overflow-x-scroll border-gray-200">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             {navigationItems.map((item) => (
               <button

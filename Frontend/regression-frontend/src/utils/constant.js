@@ -1,5 +1,28 @@
 export const DOMAIN = "http://127.0.0.1:8000/"
 
+const clearSession = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+}
+
+export const logout = async ({userLogout, navigate}) => {
+const hasAccessToken = !!localStorage.getItem("access_token");
+const hasRefreshToken = !!localStorage.getItem("refresh_token");
+
+try {
+  if(hasAccessToken && hasRefreshToken){
+    await userLogout().unwrap();
+  }
+}
+catch(err){
+  console.error("Logout failed: ", err)
+}
+finally{
+  clearSession();
+  navigate("/login")
+}
+}
+
 export const PLAYWRIGHT_ACTIONS = [
   {
     value: "goto",

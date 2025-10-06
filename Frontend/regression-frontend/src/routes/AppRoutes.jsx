@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import TestPage from "../pages/TestPage";
 import Dashboard from "../pages/dashboard";
@@ -9,20 +9,39 @@ import TestCaseProgress from "../pages/TestProgress";
 import Project from "../pages/projects";
 import SignUpPage from "../pages/signUp";
 
-
 export default function AppRoutes() {
+  const PrivateRoute = () => {
+    const location = useLocation();
+    const RedirectPath = `${location.pathname}`;
+    const loggedIn = localStorage.getItem("access_token");
+
+    return loggedIn ? (
+      <Outlet />
+    ) : (
+      <Navigate to={`/login?redirect=${RedirectPath}`} />
+    );
+  };
+
+  const PublicRoutes = () => {
+    const loggedIn = !localStorage.getItem("access_token");
+    return loggedIn ? <Outlet /> : <Navigate to="/dashboard" />;
+  };
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signUp" element={<SignUpPage />} />
-      <Route element={<Navbar />}>
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/projects" element={<Project />} />
-      <Route path="/projects/:projectId" element={<TestPage />} />
-      <Route path="/results" element={<TestCaseProgress />} />
-      <Route path="/results/:id" element={<TestCaseProgress />} />
-      <Route path="/pythonScripts" element={<PythonExecutor />} />
+      <Route element={<PublicRoutes />}>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signUp" element={<SignUpPage />} />
+      </Route>
+      <Route element={<PrivateRoute />}>
+        <Route element={<Navbar />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/projects" element={<Project />} />
+          <Route path="/projects/:projectId" element={<TestPage />} />
+          <Route path="/results" element={<TestCaseProgress />} />
+          <Route path="/results/:id" element={<TestCaseProgress />} />
+          <Route path="/pythonScripts" element={<PythonExecutor />} />
+        </Route>
       </Route>
     </Routes>
   );
