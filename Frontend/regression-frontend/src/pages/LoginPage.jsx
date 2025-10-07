@@ -96,11 +96,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     const username = localStorage.getItem("username");
+    const password = localStorage.getItem("password");
     dispatch(resetUserInfo());
     if (localStorage.getItem("rememberMe") === "true") {
       setRememberMe(true);
-      setCredentials((prev) => ({ ...prev, username }));
-      reset({ username });
+      setCredentials((prev) => ({ ...prev, username, password : atob(password) }));
+      reset({ username, password : atob(password) });
     }
   }, []);
 
@@ -124,6 +125,7 @@ export default function LoginPage() {
 
     if (localStorage.getItem("rememberMe") === "true") {
       localStorage.setItem("username", credentials.username);
+      localStorage.setItem("password",btoa(credentials.password));
     }
 
     try {

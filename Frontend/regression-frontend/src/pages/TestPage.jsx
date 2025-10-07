@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Typography,
   Box,
@@ -62,6 +62,7 @@ import {
 import Navbar from "../components/Navbar";
 import {
   useCreateTestCaseMutation,
+  useDeleteTestCaseMutation,
   useEditTestCaseMutation,
   useGetProjectbyIdQuery,
   useRunTestCaseMutation,
@@ -107,10 +108,12 @@ export default function TestPage() {
     { action: "", field: "", value: "" },
   ]);
   const [runningTests, setRunningTests] = useState(new Set());
+  const fileInputRef = useRef(null);
 
   const [createTestCase] = useCreateTestCaseMutation();
   const [EditTestCase] = useEditTestCaseMutation();
   const [RunTestCase] = useRunTestCaseMutation();
+  const [deleteTestCase] = useDeleteTestCaseMutation();
 
 
   const {data , isLoading, error } = useGetProjectbyIdQuery(projectId);
@@ -170,9 +173,33 @@ export default function TestPage() {
     }
   };
 
-  const handleAddStep = () => {
+  const handleDeleteTestcase = async (testCase) => {
+      try {
+        const response = await deleteTestCase(testCase?.id);
+        if(response){
+          toast.success("Testcase deleted successfully!");
+        }
+      }
+      catch(error) {
+        console.error("Failed to delete testcase:",error);
+        toast.error("Failed to delete testcase!");
+      }
+  }
+
+  const handleLastStep = () => {
     setTestSteps((prev) => [...prev, { action: "", field: "", value: "" }]);
   };
+
+  const handleAddStep = (index) => {
+    setTestSteps((prev) => {
+      const newStep = {action : "", field : "", value : ""};
+      const updated = [...prev];
+      updated.splice(index + 1, 0, newStep);
+      return updated;
+    })
+  }
+
+
 
   const handleRemoveStep = (index) => {
     setTestSteps((prev) => prev.filter((_, i) => i !== index));
@@ -598,14 +625,15 @@ export default function TestPage() {
                           <Button
                             variant="outlined"
                             startIcon={<UploadFile />}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={() => fileInputRef.current?.click()}
                             //className="rounded-full min-w-4 mx-auto md:rounded-md"
                           >
                            {isMdscreen && "Upload Data"}
                             <input
                               type="file"
                               accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                              hidden
+                              ref={fileInputRef}
+                              style={{ display: "none" }}
                               onChange={handleExcelUpload}
                             />
                           </Button>
@@ -631,6 +659,12 @@ export default function TestPage() {
                             className="rounded-full border"
                           >
                             <EditIcon />
+                          </IconButton>
+              
+                          <IconButton 
+                          onClick={() => handleDeleteTestcase(testCase)}
+                          color = "error">
+                             <DeleteIcon />
                           </IconButton>
                         </Tooltip>
                         
@@ -924,14 +958,22 @@ export default function TestPage() {
                         </FormHelperText>
                       )}
                     </FormControl>
-                    <IconButton
+                    <Box sx={{ display : "flex" , gap : 1}}>
+                     <IconButton
                       onClick={() => handleRemoveStep(index)}
                       disabled={testSteps?.length === 1}
                       color="error"
-                      sx={{ mt: 1 }}
                     >
                       <DeleteIcon />
                     </IconButton>
+                     <Button
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAddStep(index)}
+                    >
+                      Add Step
+                    </Button>
+                    </Box>
+                    
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
@@ -1070,7 +1112,7 @@ export default function TestPage() {
         </RadioGroup>
               <Button
                 startIcon={<AddIcon />}
-                onClick={handleAddStep}
+                onClick={handleLastStep}
                 variant="outlined"
                 sx={{ mt: 2 }}
               >
@@ -1205,7 +1247,7 @@ export default function TestPage() {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}

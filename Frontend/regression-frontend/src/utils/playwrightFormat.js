@@ -1,97 +1,132 @@
-// export const convertToPlaywrightFormat = (events) => {
-//   if (!events || !events.length) return [];
+// Helper function to check if an event is a date/time field
+const isDateField = (event) => {
+  const { type, details } = event;
+  if (type !== "input") return false;
+  
+  return details.dateField || 
+         details.type === "date" || 
+         details.placeholder?.includes("MM/DD/YYYY") || 
+         details.placeholder?.includes("hh:mm") ||
+         details["aria-label"]?.includes("Date") ||
+         details["aria-label"]?.includes("Time") ||
+         details["aria-label"]?.includes("Birth") ||
+         details.name?.includes("time") ||
+         details.name?.includes("date") ||
+         details.name?.includes("duration");
+};
 
-//   const result = [];
+// Helper function to check if a click event is on a date/time field
+const isDateFieldClick = (event) => {
+  const { type, details } = event;
+  if (type !== "click") return false;
+  
+  const ariaLabel = details["aria-label"] || "";
+  const placeholder = details.placeholder || "";
+  const name = details.name || "";
+  
+  return ariaLabel.includes("Date") ||
+         ariaLabel.includes("Time") ||
+         ariaLabel.includes("Birth") ||
+         placeholder.includes("MM/DD/YYYY") ||
+         placeholder.includes("hh:mm") ||
+         name.includes("time") ||
+         name.includes("date") ||
+         name.includes("duration");
+};
 
-//   result.push({
-//     action: "goto",
-//     url: "https://cchms.socialroots-dev.net/",
-//     value: "",
-//   });
+// Helper function to check if a click event is a calendar date picker interaction
+const isCalendarDatePicker = (event) => {
+  const { type, details } = event;
+  if (type !== "click") return false;
+  
+  return details.datePicker === true && 
+         details.day && 
+         details.fullDate;
+};
 
-//   events.forEach((event) => {
-//     const { type, details } = event;
-//     const tag = details.tag.toLowerCase();
+// Helper function to check if a date/time value is complete
+const isCompleteDate = (value) => {
+  if (!value) return false;
+  // Check if the value matches MM/DD/YYYY format with all parts filled
+  const datePattern = /^\d{2}\/\d{2}\/\d{4}$/;
+  // Check if the value matches hh:mm format for time fields
+  const timePattern = /^\d{1,2}:\d{2}$/;
+  return datePattern.test(value) || timePattern.test(value);
+};
 
-//     switch (type) {
-//       case "navigation":
-//         // Go to page
-//         result.push({ action: "wait", selector: "", value: "5000" });
-//         break;
-
-//       case "input":
-//         if (tag === "input" && details.value === "on") {
-//           result.push({
-//             action: "check",
-//             selector: details.selector,
-//             value: "",
-//           });
-//           break;
-//         } else if (details.value) {
-//           result.push({
-//             action: "fill",
-//             selector: details.selector || details.id || details.tag,
-//             value: details.value,
-//           });
-//         }
-//         break;
-
-//       case "click":
-//         // const tag = details.tag.toLowerCase();
-//         let selector = details.selector || details.id || tag;
-
-//         if (tag === "button" && details.text) {
-//           selector = `button:has-text("${details.text}")`;
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "span" && details.text) {
-//           selector = `span:has-text("${details.text}")`;
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "li" && details.text) {
-//           selector = `li:has-text("${details.text}")`;
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "a" && details.text) {
-//           selector = `a:has-text("${details.text}")`;
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "svg") {
-//           const classes = details.class
-//             ? details.class.split(" ").join(".")
-//             : "";
-//           selector = `svg.${classes}`;
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "input" && details.type === "checkbox") {
-//           // If checkbox, use 'check' action
-//           result.push({ action: "check", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "button" || tag === "a") {
-//           result.push({ action: "click", selector: selector, value: "" });
-//           break;
-//         } else if (tag === "span") {
-//           result.push({ action: "click", selector: text, value: "" });
-//           break;
-//         } else if (tag === "input") {
-//           // ignore other clicks on inputs (they will be filled already)
-//           break;
-//         }
-//         // fallback click
-//         result.push({ action: "click", selector: selector, value: "" });
-//         break;
-
-//       default:
-//         break;
-//     }
-//   });
-
-//   return result;
-// };
+// Helper function to optimize date field events
+const optimizeDateFieldEvents = (events) => {
+  const dateFieldGroups = new Map();
+  const optimizedEvents = [];
+  
+  // Group events by selector for date fields (both click and input events)
+  events.forEach((event, index) => {
+    const isDateInput = isDateField(event) && event.details.id;
+    const isDateClick = isDateFieldClick(event);
+    
+    if (isDateInput || isDateClick) {
+      // Use selector as the key for grouping (more reliable than ID for clicks)
+      const selector = event.details.selector || event.details.id || "";
+      
+      if (!dateFieldGroups.has(selector)) {
+        dateFieldGroups.set(selector, []);
+      }
+      dateFieldGroups.get(selector).push({ event, index });
+    } else {
+      optimizedEvents.push({ event, index });
+    }
+  });
+  
+  // For each date field group, keep only the first click and final input
+  dateFieldGroups.forEach((group) => {
+    // Sort by index to maintain order
+    group.sort((a, b) => a.index - b.index);
+    
+    const clickEvents = group.filter(item => item.event.type === "click");
+    const inputEvents = group.filter(item => item.event.type === "input");
+    
+    // Keep the first click event
+    if (clickEvents.length > 0) {
+      optimizedEvents.push(clickEvents[0]);
+    }
+    
+    // For input events, find the last event with a complete date value
+    if (inputEvents.length > 0) {
+      let finalInputEvent = null;
+      for (let i = inputEvents.length - 1; i >= 0; i--) {
+        const { event } = inputEvents[i];
+        const value = event.details.dateValue || event.details.value || "";
+        
+        if (isCompleteDate(value)) {
+          finalInputEvent = event;
+          break;
+        }
+      }
+      
+      // If no complete date found, use the last input event
+      if (!finalInputEvent) {
+        finalInputEvent = inputEvents[inputEvents.length - 1].event;
+      }
+      
+      optimizedEvents.push({ 
+        event: finalInputEvent, 
+        index: inputEvents[inputEvents.length - 1].index 
+      });
+    }
+  });
+  
+  // Sort by original index to maintain event order
+  optimizedEvents.sort((a, b) => a.index - b.index);
+  
+  return optimizedEvents.map(item => item.event);
+};
 
 export const convertToPlaywrightFormat = (events) => {
   if (!events || !events.length) return [];
 
+  // Optimize date field events first
+  const optimizedEvents = optimizeDateFieldEvents(events);
+  
   const result = [];
   let currentUrl = null;
 
@@ -110,7 +145,7 @@ export const convertToPlaywrightFormat = (events) => {
     }
   }
 
-  events.forEach((event, idx) => {
+  optimizedEvents.forEach((event, idx) => {
     const { type, details, url } = event;
     const tag = details.tag?.toLowerCase();
     const selector = details.selector || "";
@@ -212,8 +247,8 @@ export const convertToPlaywrightFormat = (events) => {
               events[j].details?.tag?.toLowerCase() === "input" &&
               events[j].details?.role === "combobox"
             ) {
-              dropdownEvent = events[j];
-              break;
+                dropdownEvent = events[j];
+                break;
             }
           }
 

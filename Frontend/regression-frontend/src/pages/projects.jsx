@@ -16,6 +16,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Grid,
+  IconButton,
   InputAdornment,
   Menu,
   MenuItem,
@@ -27,10 +30,13 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
   Edit as EditIcon,
+  ViewList,
+  GridView,
 } from "@mui/icons-material";
 import MoreIcon from "../assets/icons/moreiconRed.svg";
 import ViewIcon from "../assets/images/view1x.png";
 import { useNavigate } from "react-router-dom";
+import ProjectCard from "../components/Cardview";
 
 export default function Project() {
   const navigate = useNavigate();
@@ -42,6 +48,7 @@ export default function Project() {
   const [projectUrl, setProjectUrl] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [isListView, setIsListView] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -67,6 +74,13 @@ export default function Project() {
     setAnchorEl(null);
   };
 
+  const handleListView = () => {
+    setIsListView(false);
+  };
+
+  const handleGridView = () => {
+    setIsListView(true);
+  };
   const handleMoreClick = (event, data) => {
     setSelectedItem(data);
     setAnchorEl(event.currentTarget);
@@ -239,10 +253,12 @@ export default function Project() {
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         }}
       >
-        <CardContent sx={{ 
-          px: 4, 
-          py: 3,
-        }}>
+        <CardContent
+          sx={{
+            px: 4,
+            py: 3,
+          }}
+        >
           <Box
             sx={{
               display: "flex",
@@ -381,77 +397,114 @@ export default function Project() {
           </Button>
         </DialogActions>
       </Dialog>
-      <DataGrid
-        rows={formattedRow || []}
-        columns={ProjectsTableColumn}
-        disableColumnFilter
-        disableColumnMenu
-        disableColumnSorting
-      />
+      <Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Typography>All Projects</Typography>
+          <IconButton sx={{ mt: -1 }}>
+            {isListView ? (
+              <ViewList onClick={() => handleListView()} />
+            ) : (
+              <GridView onClick={() => handleGridView()} />
+            )}
+          </IconButton>
+        </Box>
 
-      {/* Menu Item */}
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
-              overflow: "visible",
-              "&:before": {
-                content: '""',
-                display: "block",
-                position: "absolute",
-                top: 0,
-                left: "45%",
-                height: 10,
-                width: 10,
-                backgroundColor: "inherit",
-                zIndex: -1,
-                //marginLeft: "0.5px",
-                transform: "translateY(-50%) rotate(45deg)",
-                boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+        <Divider sx={{ m: 2 }} />
+        {isListView ? (
+          <>
+            <DataGrid
+              rows={formattedRow || []}
+              columns={ProjectsTableColumn}
+              disableColumnFilter
+              disableColumnMenu
+              disableColumnSorting
+            />
+
+            {/* Menu Item */}
+            <Menu
+              id="basic-menu"
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              MenuListProps={{
+                "aria-labelledby": "basic-button",
+              }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "center",
+              }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
+                    overflow: "visible",
+                    "&:before": {
+                      content: '""',
+                      display: "block",
+                      position: "absolute",
+                      top: 0,
+                      left: "45%",
+                      height: 10,
+                      width: 10,
+                      backgroundColor: "inherit",
+                      zIndex: -1,
+                      //marginLeft: "0.5px",
+                      transform: "translateY(-50%) rotate(45deg)",
+                      boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+                    },
+                  },
+                },
+              }}
+            >
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  navigate(`/projects/${selectedItem.id}`);
+                }}
+                className="!text-[12px]"
+              >
+                <img src={ViewIcon} alt="ViewIcon" className="pr-3 w-[30px]" />
+                View Project
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleEditClick();
+                }}
+                className="!text-[12px]"
+              >
+                <EditIcon className="pr-2" />
+                Edit Project
+              </MenuItem>
+            </Menu>
+          </>
+        ) : (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr", // Mobile: 1 column
+                sm: "repeat(2, 1fr)", // Tablet: 2 equal columns
+                md: "repeat(3, 1fr)", // Desktop: 3 equal columns
               },
-            },
-          },
-        }}
-      >
-        <MenuItem
-          onClick={() => {
-            handleClose();
-            navigate(`/projects/${selectedItem.id}`);
-          }}
-          className="!text-[12px]"
-        >
-          <img src={ViewIcon} alt="ViewIcon" className="pr-3 w-[30px]" />
-          View Project
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleEditClick();
-          }}
-          className="!text-[12px]"
-        >
-          <EditIcon className="pr-2" />
-          Edit Project
-        </MenuItem>
-      </Menu>
+              gap: 2,
+              width: "100%",
+            }}
+          >
+            {projectsData?.results?.map((project) => (
+               <Box key={project?.id} sx={{ display: 'flex', width: '100%', minWidth: 0 }}>
+                <ProjectCard project={project} />
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}

@@ -19,7 +19,7 @@ function getSelector(el) {
   if (!el) return "";
 
   // 1. aria-label (highest priority)
-  if (el.getAttribute("aria-label")) {
+  if (el.getAttribute("aria-label") && !el.closest(".react-select__control")) {
     return `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(el.getAttribute("aria-label"))}"]`;
   }
 
@@ -45,7 +45,6 @@ function getSelector(el) {
    // 5. Text-based selector for buttons (HIGH PRIORITY)
  if (el.tagName === "BUTTON") {
   const buttonText = getElementText(el);
-  console.log("Button text check:", buttonText, "Length:", buttonText.length);
   if (buttonText && buttonText.length > 0 && buttonText.length < 50) {
     return `button:has-text("${buttonText}")`;
   }
@@ -203,27 +202,52 @@ if (reactOption) {
   details.text = reactOption.innerText.trim();
 }
 
-// React Select control/container - Enhanced version
-const reactSelectControl = target.closest(".react-select__control");
+// React Select handling - Enhanced approach
+let reactSelectControl = target.closest(".react-select__control");
+
+// If not found, check if we're clicking on a React Select sub-element
+if (!reactSelectControl && (
+  target.classList.contains("react-select__input-container") ||
+  target.classList.contains("react-select__value-container") ||
+  target.classList.contains("react-select__dropdown-indicator") ||
+  target.classList.contains("react-select__input") ||
+  target.classList.contains("react-select__placeholder")
+)) {
+  // Look for the control container in parent elements
+  let parent = target.parentElement;
+  while (parent && !reactSelectControl) {
+    if (parent.classList.contains("react-select__control")) {
+      reactSelectControl = parent;
+      break;
+    }
+    parent = parent.parentElement;
+  }
+}
+
 if (reactSelectControl) {
   details.reactSelect = true;
   
-  // Get the placeholder text for unique identification
-  const placeholder = reactSelectControl.querySelector(".react-select__placeholder");
-  if (placeholder) {
-    details.placeholder = placeholder.innerText.trim();
-    details.selector = `div:has-text("${details.placeholder}") .react-select__control`;
-  }
-  
-  // Get the input field for more specific targeting
+  // Get the input field for aria-label reference
   const input = reactSelectControl.querySelector(".react-select__input");
   if (input) {
     details.inputAriaLabel = input.getAttribute("aria-label") || "";
+    
+    // Use the control container with aria-label for specificity
     if (details.inputAriaLabel) {
-      details.selector = `input[aria-label="${details.inputAriaLabel}"]`;
+      details.selector = `div.react-select__control:has(input[aria-label="${CSS.escape(details.inputAriaLabel)}"])`;
+    } else {
+      details.selector = "div.react-select__control";
     }
+  } else {
+    details.selector = "div.react-select__control";
   }
-  
+
+  // Get the placeholder text
+  const placeholder = reactSelectControl.querySelector(".react-select__placeholder");
+  if (placeholder) {
+    details.placeholder = placeholder.innerText.trim();
+  }
+
   // Get the value container for dropdown clicks
   const valueContainer = reactSelectControl.querySelector(".react-select__value-container");
   if (valueContainer) {
@@ -327,12 +351,6 @@ document.addEventListener("input", (e) => {
       target.name?.includes("time") ||
       target.name?.includes("date")) {
     
-    console.log("=== INPUT EVENT DEBUG ===");
-    console.log("Input value changed:", target.value);
-    console.log("Input placeholder:", target.placeholder);
-    console.log("Input aria-label:", target.getAttribute("aria-label"));
-    console.log("Input name:", target.name);
-    console.log("=== END INPUT EVENT DEBUG ===");
     
     const details = {
       tag: target.tagName,
@@ -409,12 +427,6 @@ document.addEventListener("change", (e) => {
       target.name?.includes("time") ||
       target.name?.includes("date")) {
     
-    console.log("=== CHANGE EVENT DEBUG ===");
-    console.log("Input value changed:", target.value);
-    console.log("Input placeholder:", target.placeholder);
-    console.log("Input aria-label:", target.getAttribute("aria-label"));
-    console.log("Input name:", target.name);
-    console.log("=== END CHANGE EVENT DEBUG ===");
     
     const details = {
       tag: target.tagName,
