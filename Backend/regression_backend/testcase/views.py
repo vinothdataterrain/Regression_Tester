@@ -142,7 +142,12 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
-
+    def destroy(self, request, *args, **kwargs):
+        testcase = self.get_object()
+        self.perform_destroy(testcase)
+        return Response({ "message": "Testcase deleted successfully"},
+        status=status.HTTP_200_OK
+    )
 
     
 

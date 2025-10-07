@@ -1,5 +1,6 @@
+import { TestCache } from "@mui/x-data-grid/internals";
 import { api, rtkQueryServiceTags } from "./api";
-const { TEST_CASE } = rtkQueryServiceTags;
+const { TEST_CASE, PROJECT } = rtkQueryServiceTags;
 
 export const ProjectFeed = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -9,6 +10,7 @@ export const ProjectFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags : [PROJECT],
     }),
 
     updateProject: builder.mutation({
@@ -17,6 +19,7 @@ export const ProjectFeed = api.injectEndpoints({
         method: "PUT",
         body: data,
       }),
+      invalidatesTags : [PROJECT],
     }),
 
     getProjects: builder.query({
@@ -24,13 +27,15 @@ export const ProjectFeed = api.injectEndpoints({
         url: "/projects/",
         method: "GET",
       }),
+      providesTags : [PROJECT],
     }),
 
     getProjectbyId: builder.query({
      query: (id) => ({
       url: `/projects/${id}/`,
       method: "GET",
-     })
+     }),
+     providesTags : [TEST_CASE]
     }),
     createProgram: builder.mutation({
       query: (data) => ({
@@ -56,6 +61,14 @@ export const ProjectFeed = api.injectEndpoints({
         body: data,
       }),
       invalidatesTags: [TEST_CASE],
+    }),
+
+    deleteTestCase : builder.mutation({
+      query:(id) => ({
+        url : `/testcases/${id}/`,
+        method : "DELETE",
+      }),
+      invalidatesTags : [TEST_CASE],
     }),
 
     getTaskStatus: builder.query({
@@ -104,6 +117,7 @@ export const {
   useCreateTestCaseMutation,
   useRunTestCaseMutation,
   useEditTestCaseMutation,
+  useDeleteTestCaseMutation,
   useGetSummaryQuery,
   useRunPythonScriptsMutation,
   useUpdateProjectMutation,

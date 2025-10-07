@@ -1,5 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import { useUserLogoutMutation } from "../services/login.api.services";
+import { logout } from "../utils/constant";
+import { useSelector, useDispatch } from "react-redux";
+import { setUserdata, resetUserdata } from "../features/userSlice";
+import { jwtDecode } from "jwt-decode";
 import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 import MobileDrawer from './mobileDrawer';
 
@@ -132,44 +137,77 @@ const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  useEffect(() => {
-    const path = location.pathname
-  if(path === '/dashboard'){
-    setActiveTab('dashboard');
-  }
-  if(path === '/projects'){
-    setActiveTab('projects');
-  }
-  else if(path === '/results'){
-    setActiveTab('results')
-  }
-  else if(path === '/pythonScripts'){
-    setActiveTab('pythonScripts')
-  }
-  },[location.pathname])
-  
-  const handleMenuClose = () => setAnchorEl(null);
+  const [userLogout] = useUserLogoutMutation();
 
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', path : '/dashboard' },
-     { id: 'projects', label: 'Projects', icon: '📊', path : '/projects' },
-    { id: 'results', label: 'Results', icon: '📋', path: '/results' },
-    { id: 'pythonScripts', label: 'Python Scripts', icon: '', path: '/pythonScripts'},
-  ];
-
-  const handleTabClick = (item) => {
-  setActiveTab(item.id);
-  navigate(item.path);
-  }
+  const user = useSelector((state) => state.UserInfo.user);
 
   const handleLogout = () => {
     setAnchorEl(null);
-    navigate("/login");
-  }
-  
+    // Clear user data from Redux store
+    dispatch(resetUserdata());
+    logout({ userLogout, navigate });
+  };
+
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem("access_token");
+    if (accessToken && !user) {
+      try {
+        const decoded = jwtDecode(accessToken);
+        if (decoded.username && decoded.email) {
+          dispatch(
+            setUserdata({
+              username: decoded.username,
+              email: decoded.email,
+              user_id: decoded.user_id,
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error decoding access token:", error);
+        handleLogout();
+      }
+    }
+  }, [dispatch, user]);
+
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/dashboard") {
+      setActiveTab("dashboard");
+    }
+    if (path === "/projects") {
+      setActiveTab("projects");
+    } else if (path === "/results") {
+      setActiveTab("results");
+    } else if (path === "/pythonScripts") {
+      setActiveTab("pythonScripts");
+    }
+  }, [location.pathname]);
+
+  const handleMenuClose = () => setAnchorEl(null);
+
+  const navigationItems = [
+    { id: "dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
+    { id: "projects", label: "Projects", icon: "📊", path: "/projects" },
+    { id: "results", label: "Results", icon: "📋", path: "/results" },
+    {
+      id: "pythonScripts",
+      label: "Python Scripts",
+      icon: "",
+      path: "/pythonScripts",
+    },
+  ];
+
+  const handleTabClick = (item) => {
+    setActiveTab(item.id);
+    navigate(item.path);
+  };
+
   return (
     <div className="min-h-screen w-full  bg-gray-50">
       {/* Navbar */}
@@ -180,18 +218,15 @@ const Navbar = () => {
       {/* <main className="flex-1 bg-gray-50">
         {children}
       </main> */}
-     
-       {/* Main Content Area for Nested Routes */}
+
+      {/* Main Content Area for Nested Routes */}
       <main className="flex-1 w-full bg-gray-50 p-4">
         <Outlet />
       </main>
 
       {/* Click outside to close menu */}
       {anchorEl && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={handleMenuClose}
-        ></div>
+        <div className="fixed inset-0 z-40" onClick={handleMenuClose}></div>
       )}
     </div>
   );
