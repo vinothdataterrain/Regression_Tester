@@ -5,6 +5,134 @@ import { logout } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserdata, resetUserdata } from "../features/userSlice";
 import { jwtDecode } from "jwt-decode";
+import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
+import MobileDrawer from './mobileDrawer';
+
+const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }) => {
+  const [anchorEl, setAnchorEl] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const handleMenuClick = () => setAnchorEl(!anchorEl);
+  const handleMenuClose = () => setAnchorEl(false);
+
+  return (
+    <>
+      {/* Top Navbar */}
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="mx-2 px-4 sm:px-6 lg:px-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
+            >
+              <MenuIcon />
+            </button>
+
+            {/* Logo */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-base sm:text-lg font-bold">🧪</span>
+              </div>
+              <h4 className="text-xs sm:text-sm md:text-lg lg:text-xl font-semibold text-gray-900 truncate">
+                Playwright Testing Suite
+              </h4>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Hide user info on small screens */}
+              <div className="hidden sm:block text-right">
+                <div className="text-sm font-medium text-gray-900">Admin</div>
+                <div className="text-xs text-gray-500">admin@socialroots.ai</div>
+              </div>
+              
+              <div className="relative">
+                <button
+                  onClick={handleMenuClick}
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors duration-200"
+                >
+                  <span className="text-gray-600">👤</span>
+                </button>
+                
+                {/* Desktop Dropdown */}
+                {anchorEl && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={handleMenuClose}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      {/* Show user info on mobile in dropdown */}
+                      <div className="sm:hidden px-4 py-2 border-b border-gray-200">
+                        <div className="text-sm font-medium text-gray-900">Admin</div>
+                        <div className="text-xs text-gray-500">admin@socialroots.ai</div>
+                      </div>
+                      
+                      <button
+                        onClick={handleMenuClose}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <span>👤</span>
+                        <span>Profile</span>
+                      </button>
+                      <button
+                        onClick={handleMenuClose}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <span>⚙️</span>
+                        <span>Settings</span>
+                      </button>
+                      <hr className="my-1 border-gray-200" />
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                      >
+                        <span>🚪</span>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Desktop Secondary Navigation */}
+      <div className="hidden lg:block bg-white p-2 m-4 border-gray-200">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
+            {navigationItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleTabClick(item)}
+                className={`p-2 border-b-2 font-medium text-sm shadow rounded transition-colors duration-200 flex items-center space-x-2 ${
+                  activeTab === item.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span className="hidden sm:inline">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        open={mobileDrawerOpen}
+        onClose={() => setMobileDrawerOpen(false)}
+        navigationItems={navigationItems}
+        activeTab={activeTab}
+        handleTabClick={handleTabClick}
+      />
+    </>
+  );
+};
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -61,7 +189,6 @@ const Navbar = () => {
     }
   }, [location.pathname]);
 
-  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
   const navigationItems = [
@@ -84,92 +211,8 @@ const Navbar = () => {
   return (
     <div className="min-h-screen w-full  bg-gray-50">
       {/* Navbar */}
-      <nav className="bg-white shadow-sm  border-b border-gray-200">
-        <div className=" mx-2  px-4 sm:px-6 lg:px-4">
-          <div className="flex justify-between items-center h-16">
-            {/* Left side - Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg font-bold">🧪</span>
-              </div>
-              <h4 className="text-[12px] md:text-[20px]  font-semibold text-gray-900">
-                Playwright Testing Suite
-              </h4>
-            </div>
-
-            {/* Right side - User Menu */}
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {user?.username || "User"}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {user?.email || "user@gmail.com"}
-                </div>
-              </div>
-
-              <div className="relative">
-                <button
-                  onClick={handleMenuClick}
-                  className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors duration-200"
-                >
-                  <span className="text-gray-600">👤</span>
-                </button>
-
-                {/* Dropdown Menu */}
-                {anchorEl && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                    <button
-                      onClick={handleMenuClose}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <span>👤</span>
-                      <span>Profile</span>
-                    </button>
-                    <button
-                      onClick={handleMenuClose}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <span>⚙️</span>
-                      <span>Settings</span>
-                    </button>
-                    <hr className="my-1 border-gray-200" />
-                    <button
-                      onClick={() => handleLogout()}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                    >
-                      <span>🚪</span>
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Secondary Navigation */}
-      <div className="bg-white p-2 m-4 min-w-32 overflow-x-scroll border-gray-200">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleTabClick(item)}
-                className={`p-2 border-b-2 font-medium text-sm shadow rounded transition-colors duration-200 flex items-center space-x-2 ${
-                  activeTab === item.id
-                    ? "border-blue-500 text-blue-600 rounded-sm "
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+     <MainNavbar activeTab={activeTab} navigationItems={navigationItems} handleTabClick={handleTabClick} handleLogout={handleLogout}/>
+      
 
       {/* Main Content */}
       {/* <main className="flex-1 bg-gray-50">

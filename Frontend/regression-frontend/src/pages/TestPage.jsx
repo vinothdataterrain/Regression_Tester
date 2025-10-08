@@ -481,7 +481,7 @@ export default function TestPage() {
                     startIcon={<ArrowBackIcon />}
                     onClick={() => navigate('/projects')}
                     size="small"
-                    className="!rounded-full !border !p-0 md:!p-1"
+                    className="!rounded-full !border !p-0 md:!px-2"
                     >
                    { isMdscreen && "Back"}
                   </Button>
@@ -514,6 +514,7 @@ export default function TestPage() {
                     label={`${currentProject?.testcases?.length || 0} test cases`}
                     size="small"
                     color="primary"
+                    className="!bg-blue-200 !text-blue-500"
                   />
                   <Chip
                     label={`Created: ${new Date(currentProject?.created_at).toLocaleDateString()}`}
@@ -523,14 +524,15 @@ export default function TestPage() {
                 </Box>
               </Box>
               
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }} className=" w-full md:w-auto justify-between">
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => handleAddTestCase(currentProject)}
                   size="small"
+                  className="!min-w-[120px] !bg-blue-700"
                 >
-                  Add Test Case
+                  {isMdscreen ? "Add Test Case" : "Add"}
                 </Button>
                 <Tooltip title="Upload JSON file">
                   <Button
@@ -541,8 +543,9 @@ export default function TestPage() {
                       setSelectedProject(currentProject);
                     }}
                     size="small"
+                    className="!min-w-[120px]"
                   >
-                    Upload JSON
+                    {isMdscreen ?  "Upload JSON" : "Upload"}
                   </Button>
                 </Tooltip>
               </Box>
@@ -608,7 +611,7 @@ export default function TestPage() {
                     }}
                   >
                     <Box
-                    className="flex flex-col md:flex-row  justify-start md:justify-between"
+                    className="flex flex-col md:flex-row items-start justify-start md:justify-between"
                       sx={{
                        
                         alignItems: "center",
@@ -619,6 +622,7 @@ export default function TestPage() {
                     >
                       <Typography 
                         variant="h6" 
+                        className=" w-full md:w-auto"
                         sx={{ 
                           flexGrow: 1,
                           overflow: 'hidden',
