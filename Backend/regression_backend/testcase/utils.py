@@ -66,6 +66,61 @@ def generate_html_report(testcase_id, results):
                 font-size: 12px;
             }}
         }}
+        
+        /* Modal styles */
+        .modal {{
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }}
+        
+        .modal-content {{
+            margin: auto;
+            display: block;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90%;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }}
+        
+        .close {{
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }}
+        
+        .close:hover,
+        .close:focus {{
+            color: #bbb;
+            text-decoration: none;
+        }}
+        
+        .screenshot-thumbnail {{
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            border-radius: 4px;
+        }}
+        
+        .screenshot-thumbnail:hover {{
+            transform: scale(1.05);
+        }}
     </style>
 </head>
 <body>
@@ -88,11 +143,53 @@ def generate_html_report(testcase_id, results):
             f"<td>{step['value'] if 'value' in step else ''}</td>"
             f"<td>{step['status'].capitalize()}</td>"
             f"<td>{step.get('error','') if 'error' in step else ''}</td>"
-            f"<td>{f'<img src=\"{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
+            f"<td>{f'<img src=\"{step['screenshot']}\" width=\"150\" class=\"screenshot-thumbnail\" onclick=\"openModal(this)\" />' if 'screenshot' in step else ''}</td>"
             "</tr>"
             for step in results
         ])}
     </table>
+
+    <!-- Modal for screenshot display -->
+    <div id="screenshotModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        // Get the modal
+        var modal = document.getElementById('screenshotModal');
+        
+        // Get the image and insert it inside the modal
+        var modalImg = document.getElementById("modalImage");
+        
+        // Function to open modal
+        function openModal(img) {{
+            modal.style.display = "block";
+            modalImg.src = img.src;
+        }}
+        
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+        
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {{
+            modal.style.display = "none";
+        }}
+        
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {{
+            if (event.target == modal) {{
+                modal.style.display = "none";
+            }}
+        }}
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {{
+            if (event.key === 'Escape') {{
+                modal.style.display = "none";
+            }}
+        }});
+    </script>
 </body>
 </html>
 """

@@ -117,6 +117,14 @@ async def run_testcase_async(steps, values=None):
                     else:
                         raise ValueError("wait action requires selector or value")
 
+                elif action == "expect_text":
+                    expected_text = step.get("value", "").strip('"')
+                    if not expected_text:
+                        raise ValueError("Expected text required for expect_text")
+
+                    await page.wait_for_selector(f"text={expected_text}", timeout=5000)
+
+
                 elif action == "expect_visible":
                     if not selector:
                         raise ValueError("Selector required for expect_visible")

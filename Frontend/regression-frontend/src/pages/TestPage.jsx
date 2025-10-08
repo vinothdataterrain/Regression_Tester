@@ -36,6 +36,7 @@ import {
   Radio,
   useTheme,
   useMediaQuery,
+  Backdrop,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -76,6 +77,7 @@ import {
   DOMAIN,
 } from "../utils/constant";
 import { useNavigate, useParams } from "react-router-dom";
+import SuccessGradientMessage from "../components/successPopup";
 
 export default function TestPage() {
   const navigate = useNavigate();
@@ -99,9 +101,10 @@ export default function TestPage() {
   const [isAddingJson, setIsAddingJson] = useState(false);
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
-  const [reportPath, setReportPath] = useState(null);
+  const [testCaseReports, setTestCaseReports] = useState({});
   
   const { success } = useToast();
+  const [showBackdrop, setShowBackdrop] = useState(false);
   const theme = useTheme();
   const isMdscreen = useMediaQuery(theme.breakpoints.up("md"));
   const [testSteps, setTestSteps] = useState([
@@ -112,7 +115,7 @@ export default function TestPage() {
 
   const [createTestCase] = useCreateTestCaseMutation();
   const [EditTestCase] = useEditTestCaseMutation();
-  const [RunTestCase] = useRunTestCaseMutation();
+  const [RunTestCase, {isSuccess : isTestcaseSuccess, isError : isTestcaseError, error : testcaseError, isLoading : testcaseLoading}] = useRunTestCaseMutation();
   const [deleteTestCase] = useDeleteTestCaseMutation();
 
 
@@ -126,6 +129,17 @@ export default function TestPage() {
     }
   }, [data]);
 
+  useEffect(() => {
+    if(isTestcaseSuccess){
+       setShowBackdrop(true);
+       setTimeout(() => {
+        setShowBackdrop(false);
+       }, 3000);
+    }
+    else if(isTestcaseError && testcaseError){
+      toast.error(testcaseError?.data?.error || "Failed to run testcase!")
+    }
+  },[isTestcaseError, isTestcaseSuccess])
 
   const handleAddTestCase = (project) => {
     setSelectedProject(project);
@@ -256,6 +270,8 @@ export default function TestPage() {
     
       await createTestCase(data).unwrap();
 
+      toast.success("Test case added successfully!")
+
       setSnackbar({
         open: true,
         message: "Test case added successfully!",
@@ -293,19 +309,21 @@ export default function TestPage() {
       if (uploadedFile && response) {
         navigate(`/results/${testCase.id}`);
       } else {
-        setReportPath(response?.report);
-        toast.success("Test case run completed!");
-        setSnackbar({
-          open: true,
-          message: `test case ${
-            response?.status === "completed" ? "passed" : "failed"
-          }`,
-          severity: `${response?.status === "completed" ? "success" : "error"}`,
-        });
+        // Store report path for this specific test case
+        setTestCaseReports(prev => ({
+          ...prev,
+          [testCase.id]: response?.report
+        }));
+        // setSnackbar({
+        //   open: true,
+        //   message: `test case ${
+        //     response?.status === "completed" ? "passed" : "failed"
+        //   }`,
+        //   severity: `${response?.status === "completed" ? "success" : "error"}`,
+        // });
       }
     } catch (error) {
       console.error("Test execution failed:", error);
-      toast.error("Failed to run test case");
     } finally {
       //setIsRunning(false);
       setRunningTests((prev) => {
@@ -368,7 +386,8 @@ export default function TestPage() {
     }
   };
 
-  const handleDownloadReport = (reportPath) => {
+  const handleDownloadReport = (testCaseId) => {
+    const reportPath = testCaseReports[testCaseId];
     if (reportPath) {
       const url = `${DOMAIN}/media/${reportPath}`;
       window.open(url, "_blank");
@@ -433,7 +452,12 @@ export default function TestPage() {
 
   return (
     <Box className="w-full p-2">
-      
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={testcaseLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
         {/* Breadcrumb Navigation */}
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
           <Link 
@@ -591,6 +615,7 @@ export default function TestPage() {
                         width: "100%",
                         minHeight: 40
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Typography 
                         variant="h6" 
@@ -607,12 +632,12 @@ export default function TestPage() {
                       </Typography>
                       
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
-                        {reportPath && !uploadedFile && (
+                        {testCaseReports[testCase.id] && !uploadedFile && (
                           <Tooltip title="Download HTML Report">
                             <IconButton
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDownloadReport(reportPath);
+                                handleDownloadReport(testCase.id);
                               }}
                               color="primary"
                             >
@@ -820,12 +845,12 @@ export default function TestPage() {
                           <Typography variant="subtitle2" gutterBottom>
                             Test Result:
                           </Typography>
-                          {reportPath && !uploadedFile && (
+                          {testCaseReports[testCase.id] && !uploadedFile && (
                             <Button
                               variant="outlined"
                               size="small"
                               startIcon={<FileDownload />}
-                              onClick={() => handleDownloadReport(reportPath)}
+                              onClick={() => handleDownloadReport(testCase.id)}
                               sx={{ ml: 2 }}
                             >
                               Download Report
@@ -977,7 +1002,9 @@ export default function TestPage() {
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                    <TextField
+                    {step.action !== "use" && step.action !== "save" && (
+                      <>
+                      <TextField
                       label={
                         step.action === "goto"
                           ? "URL *"
@@ -1030,6 +1057,9 @@ export default function TestPage() {
                         }
                       />
                     )}
+                      </>
+                    )}
+                    
                   </Box>
 
                   {/* Common selector suggestions */}
@@ -1253,6 +1283,8 @@ export default function TestPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <SuccessGradientMessage message="Testcase run completed successfully!" isBackdropOpen={showBackdrop}/>
     </Box>
   );
 }
