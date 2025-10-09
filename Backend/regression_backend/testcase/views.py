@@ -91,7 +91,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             steps = list(testcase.steps.all().values())  # your JSON steps
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            results = loop.run_until_complete(run_testcase_async(steps, values=None))
+            results = loop.run_until_complete(run_testcase_async(steps, values=None, name=testcase.name))
             report_path = generate_html_report(testcase.id, results)
             
             return Response({

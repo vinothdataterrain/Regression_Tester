@@ -4,6 +4,9 @@ from django.conf import settings
 
 def generate_html_report(testcase_id, results):     
     """Generate a blue-themed HTML report and save it in MEDIA folder."""
+    path_url = None
+    if 'path' in results[-1]:
+        path_url = results[-1]['path']
     html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -61,6 +64,11 @@ def generate_html_report(testcase_id, results):
             color: #991b1b;
             font-weight: bold;
         }}
+        .bttn{{
+            color: #dcfce7;
+            background-color: #065f46;
+            font-weight: bold; 
+            }}
         @media (max-width: 768px) {{
             table, th, td {{
                 font-size: 12px;
@@ -90,9 +98,10 @@ def generate_html_report(testcase_id, results):
             f"<td>{step.get('error','') if 'error' in step else ''}</td>"
             f"<td>{f'<img src=\"{step['screenshot']}\" width=\"150\" />' if 'screenshot' in step else ''}</td>"
             "</tr>"
-            for step in results
+            for step in results if 'action' in step
         ])}
     </table>
+      {'<div><button class="bttn"><a href="' + path_url + '">View Path</a></button></div>' if path_url else ''}
 </body>
 </html>
 """

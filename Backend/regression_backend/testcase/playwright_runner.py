@@ -11,7 +11,7 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"\{(.*?)\}"),      # {col}
 ]
 
-async def run_testcase_async(steps, values=None):
+async def run_testcase_async(steps, values=None, name = ""):
     """
     steps: list[dict]  -- each dict must contain keys: action, selector, value, url, order (optional)
     project_url: str
@@ -37,18 +37,24 @@ async def run_testcase_async(steps, values=None):
             replaced = replaced.replace(f"{{{{{col}}}}}", str(val))
             replaced = replaced.replace(f"{{{col}}}", str(val))
         return replaced
-
+    har_dir = os.path.join(settings.MEDIA_ROOT, "har_dir")
+    os.makedirs(har_dir, exist_ok=True)
+    har_file_path = None
+    if name.strip():
+        har_file_path = os.path.join(har_dir, f"{name}.har")
     results = []
     async with async_playwright() as p:
+        if har_file_path and os.path.exists(har_file_path):
+            os.remove(har_file_path) 
         browser = await p.chromium.launch(headless=False,slow_mo=50)
         if(steps[0]["action"] == "use"):
             states_dir = os.path.join(settings.MEDIA_ROOT, "storage_states")
             os.makedirs(states_dir, exist_ok=True)
             file_path = os.path.join(states_dir, steps[0]["value"])
-            context = await browser.new_context(storage_state=file_path)
+            context = await browser.new_context(storage_state=file_path,record_har_path=str(har_file_path))
             steps = steps[1:]
         else:
-            context = await browser.new_context()
+            context = await browser.new_context(record_har_path=str(har_file_path))
         page = await context.new_page()
 
         for idx, step in enumerate(steps, start=1):
@@ -226,5 +232,9 @@ async def run_testcase_async(steps, values=None):
                 # stop on first failure per your earlier flow
                 break
 
+        await context.close()
         await browser.close()
+        if har_file_path:
+            har_url = os.path.join(settings.MEDIA_URL, "har_dir", f"{name}.har")
+            results.append({"path": har_url})
     return results
