@@ -1,6 +1,8 @@
 import React from 'react';
 import { useGetSummaryQuery } from '../services/runTestCases.api.services';
 import { useNavigate } from 'react-router-dom';
+import { useGetRecentActionsQuery } from '../services/dashboard.services';
+import TestHistoryGrid from '../components/dashboard/recentActions';
 
 const Dashboard = () => {
   // Mock data - replace with your RTK Query hook
@@ -8,6 +10,7 @@ const Dashboard = () => {
   const { data: summaryData } = useGetSummaryQuery();
   const isLoading = false;
   const error = null;
+  const {data:actions} = useGetRecentActionsQuery({},{refetchOnMountOrArgChange:true});
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -310,6 +313,8 @@ const Dashboard = () => {
           </div>
         )}
 
+
+{actions && <TestHistoryGrid data={actions} />}
         {/* Additional Dashboard Sections */}
         {!isLoading && !error && (
           <div style={{

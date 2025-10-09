@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer
+from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.db.models import Count, Avg
@@ -25,6 +25,17 @@ import uuid
 from django.conf import settings
 from datetime import datetime
 from .utils import generate_html_report
+from .models import TestActionLog
+
+def log_test_action(user, test_name, status, info=None):
+    TestActionLog.objects.create(
+        user=user,
+        test_name=test_name,
+        status=status,
+        additional_info=info or {}
+    )
+
+
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
@@ -93,7 +104,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             asyncio.set_event_loop(loop)
             results = loop.run_until_complete(run_testcase_async(steps, values=None, name=testcase.name))
             report_path = generate_html_report(testcase.id, results)
-            
+            project = testcase.project
+            log_test_action(user=request.user, test_name=testcase.name, status="completed", info={"testcase_id": testcase.id, "report": report_path, "project":project.name})
             return Response({
                 "testcase_id": testcase.id,
                 "results": results,
@@ -111,6 +123,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
         if not latest_run:
             return Response({"message": "No runs found for this testcase"}, status=404)
+        project = testcase.project
+        log_test_action(user=request.user, test_name=testcase.name, status=latest_run.status, info={"testcase_id": testcase.id, "report": latest_run.result_file.url if latest_run.result_file else None, "project":project.name , "progress": latest_run.progress})
 
         return Response({
             "testcase_id": testcase.id,
@@ -150,7 +164,9 @@ class TestCaseViewSet(viewsets.ModelViewSet):
     )
 
     
-
+class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = TestActionLog.objects.all()[:50]  # last 50 actions
+    serializer_class = TestActionLogSerializer
          
 class PlaywrightExecutorWithScreenshots:
     def __init__(self):

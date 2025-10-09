@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult
+from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult, TestActionLog
 from rest_framework.fields import CurrentUserDefault
 
 class TestStepSerializer(serializers.ModelSerializer):
@@ -86,3 +86,11 @@ class ScriptProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = ScriptProject
         fields = ["id", "name", "description", "testcases"]
+
+
+class TestActionLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = TestActionLog
+        fields = ['id', 'test_name', 'status', 'user_name', 'created_at', 'additional_info']
