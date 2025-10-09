@@ -14,6 +14,36 @@ function logEvent(type, details) {
   console.log("Captured Event:", eventData);
 }
 
+function recordInitialUrl () {
+  // Always record the initial URL regardless of isRecording state
+  // This ensures we capture the starting page URL
+  const initialEvent = {
+    type : "navigation",
+    details : {
+      action : "goto",
+      url : location.href
+    },
+    url: location.href,
+    timestamp: new Date().toISOString()
+  };
+  
+  events.push(initialEvent);
+  console.log("Initial goto step recorded:", location.href);
+}
+
+function getNearestSectionTitle(el) {
+  let parent = el.parentElement;
+  while (parent) {
+    // Look for visible heading or title divs
+    const heading = parent.querySelector("h1,h2,h3,h4,h5,h6,.text-base,.text-lg,.text-xl");
+    if (heading && heading.innerText.trim().length > 0) {
+      return heading.innerText.trim();
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
 
 function getSelector(el) {
   if (!el) return "";
@@ -46,6 +76,14 @@ function getSelector(el) {
  if (el.tagName === "BUTTON") {
   const buttonText = getElementText(el);
   if (buttonText && buttonText.length > 0 && buttonText.length < 50) {
+
+    if (buttonText.includes("Add")) {
+      const sectionTitle = getNearestSectionTitle(el);
+      if (sectionTitle) {
+        return `div:has-text("${sectionTitle}") button:has-text("Add New")`;
+      }
+    }
+    
     return `button:has-text("${buttonText}")`;
   }
 }
@@ -107,22 +145,21 @@ function getElementText(el) {
       return el.getAttribute("title");
     }
     
-    // Method 4: Try to extract text from button's original state
-    // Look for common button text patterns in the class names
-    const classList = el.className;
-    if (classList.includes('save') || classList.includes('submit')) {
-      return "Save";
+    // Method 4: Try innerText/textContent FIRST (ignores HTML tags)
+    const text = el.innerText || el.textContent || "";
+    if (text && text.trim() && !text.includes('animate-spin')) {
+      return text.trim(); // Return actual text first!
     }
     
-    // Method 5: Check if it's a submit button (common pattern)
+    // Method 5: Check if it's a submit button (common pattern) - MOVED DOWN
     if (el.type === "submit") {
       return "Save"; // Default for submit buttons
     }
-
-    // Method 6: Try innerText/textContent (ignores HTML tags)
-    const text = el.innerText || el.textContent || "";
-    if (text && text.trim() && !text.includes('animate-spin')) {
-      return text.trim();
+    
+    // Method 6: Look for common button text patterns in the class names
+    const classList = el.className;
+    if (classList.includes('save') || classList.includes('submit')) {
+      return "Save";
     }
     
     // Method 7: Check for loading state and provide fallback
@@ -459,24 +496,26 @@ document.addEventListener("change", (e) => {
   }
 });
 
-window.addEventListener("beforeunload", () => {
-  logEvent("navigation", { action: "beforeunload" });
-});
+// Navigation event listeners removed - only initial URL capture is needed
+// Individual actions (clicks on links, etc.) will handle navigation automatically
+// window.addEventListener("beforeunload", () => {
+//   logEvent("navigation", { action: "beforeunload" });
+// });
 
-window.addEventListener("popstate", () => {
-  logEvent("navigation", { action: "popstate", url: location.href });
-});
+// window.addEventListener("popstate", () => {
+//   logEvent("navigation", { action: "popstate", url: location.href });
+// });
 
-window.addEventListener("hashchange", () => {
-  logEvent("navigation", { action: "hashchange", url: location.href });
-});
+// window.addEventListener("hashchange", () => {
+//   logEvent("navigation", { action: "hashchange", url: location.href });
+// });
 
-setInterval(() => {
-  if (location.href !== lastUrl) {
-    lastUrl = location.href;
-    logEvent("navigation", { action: "url_change", url: location.href });
-  }
-}, 1000);
+// setInterval(() => {
+//   if (location.href !== lastUrl) {
+//     lastUrl = location.href;
+//     logEvent("navigation", { action: "url_change", url: location.href });
+//   }
+// }, 1000);
 
 // -----------------------------
 // Messages from popup
@@ -485,6 +524,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "startRecording") {
     isRecording = true;
     events = [];
+    recordInitialUrl();
     sendResponse({ status: "recording started" });
   }
   if (msg.action === "stopRecording") {

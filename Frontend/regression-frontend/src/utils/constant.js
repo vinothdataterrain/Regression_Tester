@@ -1,29 +1,41 @@
-export const DOMAIN = "http://127.0.0.1:8000/"
+export const DOMAIN = "http://127.0.0.1:8000/";
 
 const clearSession = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
-}
+};
 
-export const logout = async ({userLogout, navigate}) => {
-const hasAccessToken = !!localStorage.getItem("access_token");
-const hasRefreshToken = !!localStorage.getItem("refresh_token");
+export const logout = async ({ userLogout, navigate }) => {
+  const hasAccessToken = !!localStorage.getItem("access_token");
+  const hasRefreshToken = !!localStorage.getItem("refresh_token");
 
-try {
-  if(hasAccessToken && hasRefreshToken){
-    await userLogout().unwrap();
+  try {
+    if (hasAccessToken && hasRefreshToken) {
+      await userLogout().unwrap();
+    }
+  } catch (err) {
+    console.error("Logout failed: ", err);
+  } finally {
+    clearSession();
+    navigate("/login");
   }
-}
-catch(err){
-  console.error("Logout failed: ", err)
-}
-finally{
-  clearSession();
-  navigate("/login")
-}
-}
+};
 
 export const PLAYWRIGHT_ACTIONS = [
+  {
+    value: "use",
+    label: "Use login state",
+    field : "",
+    description: "Use existing login flow",
+    example: "project.json"
+  },
+  {
+    value : "save",
+    label : "save login state",
+    field : "",
+    description: "Save login flow",
+    example: "project.json"
+  },
   {
     value: "goto",
     label: "Go to URL",
@@ -73,14 +85,13 @@ export const PLAYWRIGHT_ACTIONS = [
     example: 'input[type="checkbox"], #newsletter',
   },
   {
-  "value": "validate_form",
-  "label": "Validate Form",
-  "field": "Form Selector (optional)",
-  "icon": "📝",
-  "description": "Checks page for browser-side validation errors",
-  "example": "form#loginForm"
-}
-,
+    value: "validate_form",
+    label: "Validate Form",
+    field: "Form Selector (optional)",
+    icon: "📝",
+    description: "Checks page for browser-side validation errors",
+    example: "form#loginForm",
+  },
   {
     value: "expect_text",
     label: "Expect Text",
@@ -137,18 +148,16 @@ export const SELECTOR_EXAMPLES = {
 };
 
 export function formatTableNullValues(rowData) {
-  const formattedEmpty = rowData?.map((item,) => {
-    const formattedItem = {}
+  const formattedEmpty = rowData?.map((item) => {
+    const formattedItem = {};
     for (let key in item) {
       if (item[key] === "" || item[key] === null || item[key] === undefined) {
-        formattedItem[key] = ""
-      }
-      else {
-        formattedItem[key] = item[key]
+        formattedItem[key] = "";
+      } else {
+        formattedItem[key] = item[key];
       }
     }
     return formattedItem;
-  })
-  return formattedEmpty
-
+  });
+  return formattedEmpty;
 }

@@ -130,8 +130,28 @@ export const convertToPlaywrightFormat = (events) => {
   const result = [];
   let currentUrl = null;
 
-  // Start with base URL from first event
-  if (events[0]?.url) {
+  // Look for initial navigation event with "goto" action first
+  const initialNavigationEvent = events.find(event => 
+    event.type === "navigation" && 
+    event.details?.action === "goto" && 
+    event.url
+  );
+
+  if (initialNavigationEvent) {
+    // Use the initial navigation event URL
+    try {
+      const url = initialNavigationEvent.url;
+      result.push({
+        action: "goto",
+        url: url,
+        value: "",
+      });
+      currentUrl = url;
+    } catch (e) {
+      console.warn("Invalid URL in initial navigation event:", initialNavigationEvent.url);
+    }
+  } else if (events[0]?.url) {
+    // Fallback to first event URL if no navigation event found
     try {
       const origin = new URL(events[0].url).origin;
       result.push({
@@ -146,35 +166,17 @@ export const convertToPlaywrightFormat = (events) => {
   }
 
   optimizedEvents.forEach((event, idx) => {
-    const { type, details, url } = event;
+    const { type, details } = event;
     const tag = details.tag?.toLowerCase();
     const selector = details.selector || "";
     const text = details.text?.trim();
     const id = details.id;
-
-    // Update current URL if navigation occurred
-    if (url && url !== currentUrl) {
-      currentUrl = url;
-    }
+    const aria_label = details["aria-label"];
 
     switch (type) {
       case "navigation": {
-        const action = details.action;
-
-        if (action === "url_change" && url) {
-          // Only add goto if URL actually changed
-          if (url !== currentUrl) {
-            result.push({
-              action: "goto",
-              url: url,
-              value: "",
-            });
-            currentUrl = url;
-          }
-        } else {
-          // Add wait for other navigation events
-          result.push({ action: "wait", selector: "", value: "3000" });
-        }
+        // Skip all navigation events except initial goto
+        // Individual actions will handle their own navigation automatically
         break;
       }
 
@@ -302,10 +304,17 @@ export const convertToPlaywrightFormat = (events) => {
           // Checkbox clicks are handled in input events, skip here
           break;
         } else if (tag === "button") {
-          if (text) {
+          if(aria_label){
+            result.push({
+              action : "click",
+              selector: selector || `button[aria-label="${aria_label}"]`,
+              value: "",
+            })
+          }
+          else if (text && !aria_label) {
             result.push({
               action: "click",
-              selector: `button:has-text("${text}")` || selector,
+              selector:  selector || `button:has-text("${text}")`,
               value: "",
             });
           } else {
