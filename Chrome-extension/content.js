@@ -31,13 +31,18 @@ function recordInitialUrl () {
   console.log("Initial goto step recorded:", location.href);
 }
 
-function getNearestSectionTitle(el) {
+function getNearestSection(el) {
   let parent = el.parentElement;
   while (parent) {
-    // Look for visible heading or title divs
-    const heading = parent.querySelector("h1,h2,h3,h4,h5,h6,.text-base,.text-lg,.text-xl");
-    if (heading && heading.innerText.trim().length > 0) {
-      return heading.innerText.trim();
+    // Look for a wrapper div with section text
+    const sectionDiv = parent.querySelector(".text-base,.text-lg,.text-xl");
+    if (sectionDiv && sectionDiv.innerText.trim().length > 0) {
+      // Return the section container + title text
+      const titleText = sectionDiv.innerText.trim();
+      return {
+        titleText,
+        container: parent.closest("div.flex.justify-between") || parent
+      };
     }
     parent = parent.parentElement;
   }
@@ -47,6 +52,9 @@ function getNearestSectionTitle(el) {
 
 function getSelector(el) {
   if (!el) return "";
+
+  const tag = el.tagName.toLowerCase();
+  const text = (el.innerText || el.textContent || "").trim();
 
   // 1. aria-label (highest priority)
   if (el.getAttribute("aria-label") && !el.closest(".react-select__control")) {
@@ -72,23 +80,23 @@ function getSelector(el) {
     return `[data-cy="${CSS.escape(el.dataset.cy)}"]`;
   }
 
-   // 5. Text-based selector for buttons (HIGH PRIORITY)
- if (el.tagName === "BUTTON") {
-  const buttonText = getElementText(el);
-  if (buttonText && buttonText.length > 0 && buttonText.length < 50) {
-
-    if (buttonText.includes("Add")) {
-      const sectionTitle = getNearestSectionTitle(el);
-      if (sectionTitle) {
-        return `div:has-text("${sectionTitle}") button:has-text("Add New")`;
-      }
+   // 5. Button / A tag handling
+ if ((tag === "button" || tag === "a") && text && text.toLowerCase().includes("add")) {
+    const section = getNearestSection(el);
+    if (section) {
+      return `div.flex.justify-between:has-text("${section.titleText}") ${tag}:has-text("${text}")`;
+    } else {
+      // fallback if no section found
+      return `${tag}:has-text("${text}")`;
     }
-    
-    return `button:has-text("${buttonText}")`;
   }
-}
 
-  // 5. Special cases
+   // 6. Normal button text
+  if (tag === "button" && text.length > 0 && text.length < 50) {
+    return `button:has-text("${text}")`;
+  }
+
+  // 7. Special cases
   if (el.tagName === "A" && el.getAttribute("href")) {
     return `a[href="${CSS.escape(el.getAttribute("href"))}"]`;
   }
@@ -99,12 +107,12 @@ function getSelector(el) {
     return `button[type="${CSS.escape(el.type)}"]`;
   }
 
-  // 6. Text-based selector (Playwright supports it)
+  // 8. Text-based selector (Playwright supports it)
   if (el.innerText && el.innerText.trim().length > 0 && el.innerText.trim().length < 50) {
     return `text="${el.innerText.trim()}"`;
   }
 
-  // 7. Class fallback (skip css-* auto-generated classes)
+  // 9. Class fallback (skip css-* auto-generated classes)
   if (el.className) {
     const classes = el.className
       .split(/\s+/)
@@ -116,7 +124,7 @@ function getSelector(el) {
     }
   }
 
-  // 8. nth-child fallback
+  // 10. nth-child fallback
   if (el.parentElement) {
     const siblings = Array.from(el.parentElement.children);
     const index = siblings.indexOf(el) + 1;

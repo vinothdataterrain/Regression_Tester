@@ -8,7 +8,7 @@ import { jwtDecode } from "jwt-decode";
 import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 import MobileDrawer from './mobileDrawer';
 
-const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }) => {
+const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLogout }) => {
   const [anchorEl, setAnchorEl] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
@@ -35,7 +35,7 @@ const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }
                 <span className="text-white text-base sm:text-lg font-bold">🧪</span>
               </div>
               <h4 className="text-xs sm:text-sm md:text-lg lg:text-xl font-semibold text-gray-900 truncate">
-                Playwright Testing Suite
+                TestFlow
               </h4>
             </div>
 
@@ -43,8 +43,8 @@ const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }
             <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Hide user info on small screens */}
               <div className="hidden sm:block text-right">
-                <div className="text-sm font-medium text-gray-900">Admin</div>
-                <div className="text-xs text-gray-500">admin@socialroots.ai</div>
+                <div className="text-sm font-medium text-gray-900">{user?.username }</div>
+                <div className="text-xs text-gray-500">{user?.email}</div>
               </div>
               
               <div className="relative">
@@ -65,8 +65,8 @@ const MainNavbar = ({ activeTab, navigationItems, handleTabClick, handleLogout }
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       {/* Show user info on mobile in dropdown */}
                       <div className="sm:hidden px-4 py-2 border-b border-gray-200">
-                        <div className="text-sm font-medium text-gray-900">Admin</div>
-                        <div className="text-xs text-gray-500">admin@socialroots.ai</div>
+                        <div className="text-sm font-medium text-gray-900">{user?.username}</div>
+                        <div className="text-xs text-gray-500">{user?.email}</div>
                       </div>
                       
                       <button
@@ -211,7 +211,7 @@ const Navbar = () => {
   return (
     <div className="min-h-screen w-full  bg-gray-50">
       {/* Navbar */}
-     <MainNavbar activeTab={activeTab} navigationItems={navigationItems} handleTabClick={handleTabClick} handleLogout={handleLogout}/>
+     <MainNavbar user={user} activeTab={activeTab} navigationItems={navigationItems} handleTabClick={handleTabClick} handleLogout={handleLogout}/>
       
 
       {/* Main Content */}

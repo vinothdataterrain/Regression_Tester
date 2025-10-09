@@ -167,6 +167,8 @@ export default function TestPage() {
         id: testCase.id,
         data: updatedTestcaseData,
       }).unwrap();
+
+      toast.success("Testcase updated successfully!");
       setSnackbar({
         open: true,
         message: "Test case updated successfully!",
@@ -1140,9 +1142,33 @@ export default function TestPage() {
           value={stateOption}
           onChange={(e) => setStateOption(e.target.value)}
         >
-          <FormControlLabel value="null" control={<Radio />} label="No state" />
-          <FormControlLabel value="save" control={<Radio />} label="Save state " />
-          <FormControlLabel value="use" control={<Radio />} label="Use existing state" />
+          <FormControlLabel value="null" control={<Radio />} 
+          label={
+            <Tooltip title="Login fresh for each test run">
+              <span>
+                Fresh Start
+              </span>
+            </Tooltip>
+            }/>
+          <FormControlLabel value="save" control={<Radio />} label=
+          {
+            <Tooltip title="Remember Login info for future test">
+              <span>
+                 Remember Login 
+              </span>
+            </Tooltip>
+          }
+          />
+          <FormControlLabel value="use" control={<Radio />} label=
+          {
+            <Tooltip title="Use previously saved login info">
+              <span>
+                Use Saved Login
+              </span>
+            </Tooltip>
+          }
+          
+          />
         </RadioGroup>
               <Button
                 startIcon={<AddIcon />}

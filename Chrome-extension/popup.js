@@ -28,7 +28,7 @@ function sendToContent(action, callback) {
     // First try to send message
     chrome.tabs.sendMessage(tabId, { action }, (response) => {
       if (chrome.runtime.lastError) {
-        console.warn("No content script in this tab, injecting...", chrome.runtime.lastError.message);
+        // console.warn("No content script in this tab, injecting...", chrome.runtime.lastError.message);
         
         // If content script not available, inject it first
         injectContentScript(tabId, () => {
