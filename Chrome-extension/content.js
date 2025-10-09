@@ -11,7 +11,6 @@ function logEvent(type, details) {
     timestamp: new Date().toISOString()
   };
   events.push(eventData);
-  console.log("Captured Event:", eventData);
 }
 
 function recordInitialUrl () {
@@ -28,24 +27,44 @@ function recordInitialUrl () {
   };
   
   events.push(initialEvent);
-  console.log("Initial goto step recorded:", location.href);
 }
 
+// function getNearestSection(el) {
+//   let parent = el.parentElement;
+//   while (parent) {
+//     // Look for a wrapper div with section text
+//     console.log("parent",parent)
+//     const sectionDiv = parent.querySelector(".text-base,.text-lg,.text-xl");
+//     if (sectionDiv && sectionDiv.innerText.trim().length > 0) {
+//       // Return the section container + title text
+//       const titleText = sectionDiv.innerText.trim();
+//       return {
+//         titleText,
+//         container: parent.closest("div.flex.justify-between") || parent
+//       };
+//     }
+//     parent = parent.parentElement;
+//   }
+//   return null;
+// }
+
 function getNearestSection(el) {
-  let parent = el.parentElement;
-  while (parent) {
-    // Look for a wrapper div with section text
-    const sectionDiv = parent.querySelector(".text-base,.text-lg,.text-xl");
-    if (sectionDiv && sectionDiv.innerText.trim().length > 0) {
-      // Return the section container + title text
-      const titleText = sectionDiv.innerText.trim();
-      return {
-        titleText,
-        container: parent.closest("div.flex.justify-between") || parent
-      };
-    }
-    parent = parent.parentElement;
+  if (!el) return null;
+
+  // Take the immediate parent div
+  const parentDiv = el.closest("div.flex.justify-between") || el.parentElement;
+  if (!parentDiv) return null;
+
+  // Look for a section title inside this div only
+  const sectionDiv = parentDiv.querySelector(".text-base,.text-lg,.text-xl");
+  if (sectionDiv && sectionDiv.innerText.trim().length > 0) {
+    return {
+      titleText: sectionDiv.innerText.trim(),
+      container: parentDiv
+    };
   }
+
+  // If nothing found in the immediate parent div, return null
   return null;
 }
 
