@@ -272,13 +272,20 @@ export const convertToPlaywrightFormat = (events) => {
 
         // Special handling for different element types
         if (tag === "a" && details.href) {
-          if (
+          if(details.text && aria_label === ""){
+            result.push({
+              action : "click",
+              selector : selector || `a:has-text("${text})`,
+              value: "",
+            })
+          }
+          else if (
             details.class &&
             text
           ) {
             result.push({
               action: "click",
-              selector: `a:has-text("${text}")`,
+              selector: `a:has-text("${text}")` || selector,
               value: "",
             });
           } else if (details.role === "button" && text) {
