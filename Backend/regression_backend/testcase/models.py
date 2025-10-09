@@ -1,7 +1,20 @@
 from django.db import models
 import uuid
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
+
+class TestActionLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    test_name = models.CharField(max_length=255)
+    project =  models.CharField(max_length=200)
+    status = models.CharField(max_length=50)  # e.g., 'scheduled', 'running', 'completed', 'failed'
+    created_at = models.DateTimeField(auto_now_add=True)
+    additional_info = models.JSONField(blank=True, null=True)  
+
+    class Meta:
+        ordering = ['-created_at'] 
 
 class Project(models.Model):
     name = models.CharField(max_length=200)
