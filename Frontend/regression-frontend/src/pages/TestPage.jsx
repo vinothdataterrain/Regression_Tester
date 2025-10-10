@@ -289,6 +289,7 @@ export default function TestPage() {
         message: "Failed to add test case",
         severity: "error",
       });
+      toast.error("Failed to save testcase!")
     }
   };
 
@@ -375,6 +376,7 @@ export default function TestPage() {
       };
       try {
         await createTestCase(payloadData).unwrap();
+        toast.success("Testcase added successfully!")
         setIsAddingTestCase(false);
         setIsAddingJson(false);
         setTestCaseName("");
@@ -382,9 +384,11 @@ export default function TestPage() {
         setStateOption(null);
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);
+        toast.error("Failed to create testcase")
       }
     } catch (err) {
       console.error("Failed to read or parse JSON file:", err);
+      toast.error("Failed to read json file")
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Chip, IconButton, Tooltip } from '@mui/material';
 import { FileDownload, Visibility } from '@mui/icons-material';
+import { DOMAIN } from '../../utils/constant';
 
 const TestHistoryGrid = ({data}) => {
   const [rows, setRows] = useState([]);
@@ -24,8 +25,8 @@ const TestHistoryGrid = ({data}) => {
   };
 
   const handleDownloadReport = (reportPath) => {
-    // Implement download logic
-    console.log('Downloading report:', reportPath);
+    const url = `${DOMAIN}/media/${reportPath}`
+    window.open(url,"_blank");
   };
 
 
