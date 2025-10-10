@@ -186,7 +186,7 @@ export default function LoginPage() {
               textAlign: "center",
             }}
           >
-            Regression Testing
+            Test Automator
           </Typography>
 
           <Typography
@@ -197,7 +197,7 @@ export default function LoginPage() {
               textAlign: "center",
             }}
           >
-            Sign in to access your test suite
+            Login
           </Typography>
 
           {/* Login Card */}
@@ -335,7 +335,7 @@ export default function LoginPage() {
               </Box>
 
               {/* Divider */}
-              <Box
+              {/* <Box
                 sx={{
                   mt: 4,
                   pt: 3,
@@ -354,7 +354,7 @@ export default function LoginPage() {
                     Contact support
                   </Link>
                 </Typography>
-              </Box>
+              </Box> */}
             </Box>
           </Paper>
 

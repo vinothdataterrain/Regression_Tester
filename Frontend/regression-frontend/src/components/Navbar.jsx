@@ -35,7 +35,7 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                 <span className="text-white text-base sm:text-lg font-bold">🧪</span>
               </div>
               <h4 className="text-xs sm:text-sm md:text-lg lg:text-xl font-semibold text-gray-900 truncate">
-                TestFlow
+                Test Automator
               </h4>
             </div>
 

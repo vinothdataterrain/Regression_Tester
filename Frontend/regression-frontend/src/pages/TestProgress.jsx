@@ -216,7 +216,7 @@ const TestCaseProgress = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success("Download started!");
+      toast.success("Result Downloaded successfully!");
     } else {
       toast.error("Result file not available yet!");
     }
