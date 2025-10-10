@@ -285,14 +285,14 @@ export default function LoginPage() {
                   }
                   label="Remember me"
                 />
-                <Link
+                {/* <Link
                   href="#"
                   variant="body2"
                   color="primary"
                   sx={{ textDecoration: "none" }}
                 >
                   Forgot password?
-                </Link>
+                </Link> */}
               </Box>
 
               {/* Login Button */}
