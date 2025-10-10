@@ -165,7 +165,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     
 class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = TestActionLog.objects.all()[:50]  # last 50 actions
+    queryset = TestActionLog.objects.all().order_by('id')[:50]  # last 50 actions
     serializer_class = TestActionLogSerializer
          
 class PlaywrightExecutorWithScreenshots:
