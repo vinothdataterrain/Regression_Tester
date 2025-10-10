@@ -146,7 +146,6 @@ export default function Project() {
       console.error("Failed to update project:", error);
     }
   };
-  console.log("currentid", projectId);
 
   const handleEditClick = () => {
     handleClose();

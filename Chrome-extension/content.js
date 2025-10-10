@@ -70,12 +70,8 @@ function formatTimeValue(hours, minutes, ampm) {
 // Helper function to complete calendar interaction
 function completeCalendarInteraction() {
   if (!calendarInteraction.active || !calendarInteraction.targetInput) {
-    console.log("Calendar interaction not active or no target input");
     return;
-  }
-  
-  console.log("Completing calendar interaction:", calendarInteraction);
-  
+  }  
   let finalValue = null;
   
   // Determine the type of calendar interaction
@@ -116,7 +112,6 @@ function completeCalendarInteraction() {
     }
   }
   
-  console.log("Final value:", finalValue);
   
   if (finalValue) {
     // Create a final input event with the complete value
@@ -138,7 +133,7 @@ function completeCalendarInteraction() {
       timestamp: new Date().toISOString()
     };
     
-    console.log("Adding final calendar event:", finalEvent);
+
     events.push(finalEvent);
   }
   
@@ -373,7 +368,7 @@ document.addEventListener("click", (e) => {
   
   // Handle "Choose date" button clicks to start calendar interaction
   if (target.tagName === "BUTTON" && target.getAttribute("aria-label") === "Choose date") {
-    console.log("Choose date button clicked, starting calendar interaction");
+
     calendarInteraction.active = true;
     calendarInteraction.startTime = Date.now();
     
@@ -389,13 +384,11 @@ document.addEventListener("click", (e) => {
         name: inputField.name || "",
         placeholder: inputField.placeholder || ""
       };
-      console.log("Found target input:", calendarInteraction.targetInput);
     }
   }
   
   // Handle clicks on start_time input field
   if (target.tagName === "INPUT" && target.name === "start_time") {
-    console.log("Start time input clicked");
     if (!calendarInteraction.active) {
       calendarInteraction.active = true;
       calendarInteraction.startTime = Date.now();
@@ -406,7 +399,6 @@ document.addEventListener("click", (e) => {
         name: target.name || "",
         placeholder: target.placeholder || ""
       };
-      console.log("Started calendar interaction for start_time:", calendarInteraction.targetInput);
     }
   }
   if (target.tagName === "INPUT" && target.type === "checkbox") {
@@ -581,7 +573,6 @@ if (reactSelectControl) {
             if (event.type === "click" && event.details.tag === "INPUT" && 
                 (event.details["aria-label"]?.includes("Time") || event.details.name?.includes("time") || event.details.name?.includes("start_time"))) {
               calendarInteraction.targetInput = event.details;
-              console.log("Calendar interaction started for:", event.details);
               break;
             }
           }
@@ -604,18 +595,14 @@ if (reactSelectControl) {
       const ariaLabel = target.getAttribute("aria-label") || "";
       const timeValue = target.innerText.trim();
       
-      console.log("Time picker interaction:", { ariaLabel, timeValue, calendarInteraction });
       
       // Determine if this is hours, minutes, or AM/PM
       if (ariaLabel.includes("hours")) {
         calendarInteraction.currentHours = timeValue;
-        console.log("Set hours:", timeValue);
       } else if (ariaLabel.includes("minutes")) {
         calendarInteraction.currentMinutes = timeValue;
-        console.log("Set minutes:", timeValue);
       } else if (ariaLabel.includes("AM") || ariaLabel.includes("PM")) {
         calendarInteraction.currentAmPm = timeValue;
-        console.log("Set AM/PM:", timeValue);
         
         // Complete the time value if we have all components
         if (calendarInteraction.currentHours && calendarInteraction.currentMinutes && calendarInteraction.currentAmPm) {
@@ -624,7 +611,6 @@ if (reactSelectControl) {
             calendarInteraction.currentMinutes,
             calendarInteraction.currentAmPm
           );
-          console.log("Complete time value:", calendarInteraction.timeValue);
         }
       }
       
@@ -636,7 +622,6 @@ if (reactSelectControl) {
           // This is a duration field, not start_time
           if (calendarInteraction.currentHours && calendarInteraction.currentMinutes) {
             calendarInteraction.durationValue = `${calendarInteraction.currentHours}:${calendarInteraction.currentMinutes}`;
-            console.log("Duration value:", calendarInteraction.durationValue);
           }
           break;
         }
@@ -654,7 +639,6 @@ if (reactSelectControl) {
     const isCalendarComponent = target.closest(".MuiPickersDay-root, .MuiMultiSectionDigitalClockSection-item, .MuiPickersCalendar-root, .MuiDatePicker-root, .MuiDialog-paper, .MuiPickersLayout-root, .MuiCalendar-root");
     
     if (!isCalendarComponent) {
-      console.log("Clicking outside calendar, completing interaction");
       // Complete the calendar interaction after a short delay
       setTimeout(() => {
         completeCalendarInteraction();
@@ -663,7 +647,6 @@ if (reactSelectControl) {
       // Also complete if we have enough data and it's been a while
       const timeSinceStart = Date.now() - calendarInteraction.startTime;
       if (timeSinceStart > 5000) { // 5 seconds timeout
-        console.log("Calendar interaction timeout, completing");
         setTimeout(() => {
           completeCalendarInteraction();
         }, 100);

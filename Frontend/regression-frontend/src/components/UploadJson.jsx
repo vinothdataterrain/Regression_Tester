@@ -36,7 +36,6 @@ const UploadTestCase = ({ project, createTestCase }) => {
 
       try {
         await createTestCase(payloadData).unwrap();
-        console.log("Playwright payload successfully sent:", PlaywrightFormat);
         handleClose();
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);

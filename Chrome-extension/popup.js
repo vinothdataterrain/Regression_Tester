@@ -9,7 +9,6 @@ function injectContentScript(tabId, callback) {
         console.error("Script injection failed:", chrome.runtime.lastError.message);
         updateStatus("Failed to inject script", "red");
       } else {
-        console.log("Content script injected");
         if (callback) callback();
       }
     }
@@ -62,21 +61,18 @@ function updateStatus(text, color = "green") {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById("start")?.addEventListener("click", () => {
     sendToContent("startRecording", (res) => {
-      console.log("Start response:", res);
       updateStatus("Recording...", "green");
     });
   });
 
   document.getElementById("stop")?.addEventListener("click", () => {
     sendToContent("stopRecording", (res) => {
-      console.log("Stop response:", res);
       updateStatus("Stopped", "red");
     });
   });
 
   document.getElementById("download")?.addEventListener("click", () => {
     sendToContent("getEvents", (response) => {
-      console.log("Download response:", response);
       
       // Fix for the undefined slice error
       if (!response || !Array.isArray(response) || response.length === 0) {
@@ -97,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById("clear")?.addEventListener("click", () => {
     sendToContent("clearEvents", (res) => {
-      console.log("Clear response:", res);
       updateStatus("Cleared logs", "orange");
     });
   });

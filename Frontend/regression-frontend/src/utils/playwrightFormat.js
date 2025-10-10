@@ -117,11 +117,9 @@ const optimizeDateFieldEvents = (events) => {
       optimizedEvents.push({ event, index });
     } else if (isIntermediateCalendar) {
       // Skip intermediate calendar interaction clicks (date picker, time picker, etc.)
-      console.log("Filtering out intermediate calendar click:", event);
       return; // Skip this event
     } else if (isCalendarInputClickEvent) {
       // Skip clicks on calendar input fields (they're just triggers for calendar)
-      console.log("Filtering out calendar input click:", event);
       return; // Skip this event
     } else if (isDateInput || isDateClick) {
       // Use selector as the key for grouping (more reliable than ID for clicks)
@@ -308,7 +306,7 @@ export const convertToPlaywrightFormat = (events) => {
       case "click": {
         // Skip intermediate calendar interaction clicks
         if (isIntermediateCalendarClick(event) || isCalendarInputClick(event)) {
-          console.log("Skipping calendar click in conversion:", event);
+          //skip calendar click in conversion
           break;
         }
         
