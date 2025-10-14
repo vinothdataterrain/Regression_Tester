@@ -46,7 +46,7 @@ async def run_testcase_async(steps, values=None, name = ""):
     async with async_playwright() as p:
         if har_file_path and os.path.exists(har_file_path):
             os.remove(har_file_path) 
-        browser = await p.chromium.launch(headless=False,slow_mo=50)
+        browser = await p.chromium.launch(headless=True,slow_mo=50)
         if(steps[0]["action"] == "use"):
             states_dir = os.path.join(settings.MEDIA_ROOT, "storage_states")
             os.makedirs(states_dir, exist_ok=True)
