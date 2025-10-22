@@ -4,25 +4,29 @@ import { Box, Chip, IconButton, Tooltip } from '@mui/material';
 import { FileDownload, Visibility } from '@mui/icons-material';
 import { DOMAIN } from '../../utils/constant';
 
-const TestHistoryGrid = ({data}) => {
+const TestHistoryGrid = ({data, rowCount, paginationModel, setPaginationModel}) => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+   useEffect(() => {
+    setRows(data || []);
+  }, [data]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  // useEffect(() => {
+  //   fetchData();
+  // }, []);
+
+  // const fetchData = async () => {
+  //   setLoading(true);
+  //   try {
      
-      setRows(data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     setRows(data);
+  //   } catch (error) {
+  //     console.error('Error fetching data:', error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleDownloadReport = (reportPath) => {
     const url = `${DOMAIN}/media/${reportPath}`
@@ -126,8 +130,10 @@ const TestHistoryGrid = ({data}) => {
         rows={rows}
         columns={columns}
         loading={loading}
-        pageSize={10}
-        rowsPerPageOptions={[5, 10, 25, 50]}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        paginationMode="server"
+        rowCount={rowCount}
         disableSelectionOnClick
         sx={{
           '& .MuiDataGrid-cell:focus': {

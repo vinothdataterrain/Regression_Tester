@@ -26,6 +26,7 @@ from django.conf import settings
 from datetime import datetime
 from .utils import generate_html_report
 from .models import TestActionLog
+from .utils import SetPagination
 
 def log_test_action(user, test_name, status, info=None):
     TestActionLog.objects.create(
@@ -56,12 +57,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         })
     
 class SummaryView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
-        project_count = Project.objects.count()
-        testcase_count = TestCase.objects.count()
-        teststeps_count = TestStep.objects.count()
+        user = request.user
+        projects = Project.objects.filter(user=user)
+        testcases = TestCase.objects.filter(project__user=user)
+        teststeps = TestStep.objects.filter(testcase__project__user=user)
+        project_count = projects.count()
+        testcase_count = testcases.count()
+        teststeps_count = teststeps.count()
 
-        avg_steps = TestCase.objects.annotate(step_count=Count('steps')).aggregate(avg_steps=Avg('step_count'))['avg_steps'] or 0
+        avg_steps = testcases.annotate(step_count=Count('steps')).aggregate(avg_steps=Avg('step_count'))['avg_steps'] or 0
 
         data = {
             "totalProjects" : project_count,
@@ -165,8 +171,9 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     
 class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = TestActionLog.objects.all().order_by('id')[:50]  # last 50 actions
+    queryset = TestActionLog.objects.all().order_by('-id')
     serializer_class = TestActionLogSerializer
+    pagination_class = SetPagination
          
 class PlaywrightExecutorWithScreenshots:
     def __init__(self):

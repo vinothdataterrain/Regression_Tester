@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGetSummaryQuery } from '../services/runTestCases.api.services';
 import { useNavigate } from 'react-router-dom';
 import { useGetRecentActionsQuery } from '../services/dashboard.services';
@@ -11,7 +11,14 @@ const Dashboard = () => {
   const { data: summaryData } = useGetSummaryQuery();
   const isLoading = false;
   const error = null;
-  const {data:actions} = useGetRecentActionsQuery({},{refetchOnMountOrArgChange:true});
+  const [paginationModel, setPaginationModel] = useState({
+    page : 0,
+    pageSize: 5,
+  })
+  const {data:actions} = useGetRecentActionsQuery({
+    page : paginationModel?.page + 1,
+    limit : paginationModel?.pageSize,
+  },{refetchOnMountOrArgChange:true});
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -350,7 +357,7 @@ const Dashboard = () => {
                 </p>
               </div>
           </div>
-             {actions && <TestHistoryGrid data={actions} />}
+             {actions?.results && <TestHistoryGrid data={actions?.results} rowCount={actions?.count || 0} paginationModel={paginationModel} setPaginationModel={setPaginationModel}/>}
             </div>
             
 
