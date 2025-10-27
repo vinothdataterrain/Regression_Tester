@@ -177,7 +177,7 @@ export default function SignUpPage() {
               textAlign: "center",
             }}
           >
-            Regression Testing
+            Test Automator
           </Typography>
 
           <Typography
@@ -363,7 +363,7 @@ export default function SignUpPage() {
               </Box>
 
               {/* Divider */}
-              <Box
+              {/* <Box
                 sx={{
                   mt: 4,
                   pt: 3,
@@ -382,12 +382,12 @@ export default function SignUpPage() {
                     Contact support
                   </Link>
                 </Typography>
-              </Box>
+              </Box> */}
             </Box>
           </Paper>
 
           {/* Footer */}
-          <Typography
+          {/* <Typography
             variant="caption"
             sx={{
               color: "rgba(0,0,0,0.6)",
@@ -396,7 +396,7 @@ export default function SignUpPage() {
             }}
           >
             © 2024 Regression Testing Suite. All rights reserved.
-          </Typography>
+          </Typography> */}
         </Box>
       </Container>
     </Box>

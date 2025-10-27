@@ -1,5 +1,11 @@
 import os
 from django.conf import settings
+from rest_framework.pagination import PageNumberPagination
+
+
+class SetPagination(PageNumberPagination):
+    page_size = 5
+    max_page_size = 50
 
 
 def generate_html_report(testcase_id, results):     

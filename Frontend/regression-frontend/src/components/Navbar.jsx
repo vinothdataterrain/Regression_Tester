@@ -5,7 +5,7 @@ import { logout } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserdata, resetUserdata } from "../features/userSlice";
 import { jwtDecode } from "jwt-decode";
-import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Close as CloseIcon, Dataset, Analytics, Article, Terminal } from '@mui/icons-material';
 import MobileDrawer from './mobileDrawer';
 
 const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLogout }) => {
@@ -35,7 +35,7 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                 <span className="text-white text-base sm:text-lg font-bold">🧪</span>
               </div>
               <h4 className="text-xs sm:text-sm md:text-lg lg:text-xl font-semibold text-gray-900 truncate">
-                TestFlow
+                Test Automator
               </h4>
             </div>
 
@@ -69,7 +69,7 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                         <div className="text-xs text-gray-500">{user?.email}</div>
                       </div>
                       
-                      <button
+                      {/* <button
                         onClick={handleMenuClose}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                       >
@@ -82,8 +82,8 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                       >
                         <span>⚙️</span>
                         <span>Settings</span>
-                      </button>
-                      <hr className="my-1 border-gray-200" />
+                      </button> */}
+                      {/* <hr className="my-1 border-gray-200" /> */}
                       <button
                         onClick={handleLogout}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
@@ -104,8 +104,10 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
       <div className="hidden lg:block bg-white p-2 m-4 border-gray-200">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap gap-2 sm:gap-4">
-            {navigationItems.map((item) => (
-              <button
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
                 key={item.id}
                 onClick={() => handleTabClick(item)}
                 className={`p-2 border-b-2 font-medium text-sm shadow rounded transition-colors duration-200 flex items-center space-x-2 ${
@@ -114,10 +116,11 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
+                <Icon className="text-lg" />
                 <span className="hidden sm:inline">{item.label}</span>
               </button>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
@@ -192,13 +195,13 @@ const Navbar = () => {
   const handleMenuClose = () => setAnchorEl(null);
 
   const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
-    { id: "projects", label: "Projects", icon: "📊", path: "/projects" },
-    { id: "results", label: "Results", icon: "📋", path: "/results" },
+    { id: "dashboard", label: "Dashboard", icon: Analytics, path: "/dashboard" },
+    { id: "projects", label: "Projects", icon: Dataset, path: "/projects" },
+    { id: "results", label: "Results", icon: Article, path: "/results" },
     {
       id: "pythonScripts",
       label: "Python Scripts",
-      icon: "",
+      icon: Terminal,
       path: "/pythonScripts",
     },
   ];

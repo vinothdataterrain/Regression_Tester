@@ -99,7 +99,6 @@ export default function PlaywrightExecutorWithScreenshots() {
       };
 
       const response = await runPythonScripts(scriptData).unwrap();
-      console.log("Execution result:", response);
       setResult(response);
     } catch (err) {
       console.error("Execution error:", err);

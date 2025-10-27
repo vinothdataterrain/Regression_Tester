@@ -51,7 +51,52 @@ const isCompleteDate = (value) => {
   const datePattern = /^\d{2}\/\d{2}\/\d{4}$/;
   // Check if the value matches hh:mm format for time fields
   const timePattern = /^\d{1,2}:\d{2}$/;
-  return datePattern.test(value) || timePattern.test(value);
+  // Check if the value matches MM/DD/YYYY hh:mm AM/PM format (calendar complete)
+  const dateTimePattern = /^\d{2}\/\d{2}\/\d{4} \d{1,2}:\d{2} (AM|PM)$/;
+  return datePattern.test(value) || timePattern.test(value) || dateTimePattern.test(value);
+};
+
+// Helper function to check if an event is a calendar complete event
+const isCalendarCompleteEvent = (event) => {
+  const { type, details } = event;
+  return type === "input" && details.calendarComplete === true;
+};
+
+// Helper function to check if a click event is on a calendar input field
+const isCalendarInputClick = (event) => {
+  const { type, details } = event;
+  if (type !== "click") return false;
+  
+  // Check if it's a click on date/time input fields
+  const ariaLabel = details["aria-label"] || "";
+  const placeholder = details.placeholder || "";
+  const name = details.name || "";
+  
+  return (ariaLabel.includes("Time") || 
+          ariaLabel.includes("Date") ||
+          placeholder.includes("MM/DD/YYYY") ||
+          placeholder.includes("hh:mm") ||
+          name.includes("time") ||
+          name.includes("date") ||
+          name.includes("duration")) && 
+         details.tag === "INPUT";
+};
+
+// Helper function to check if a click event is an intermediate calendar interaction
+const isIntermediateCalendarClick = (event) => {
+  const { type, details } = event;
+  if (type !== "click") return false;
+  
+  // Check for date picker clicks
+  if (details.datePicker === true) return true;
+  
+  // Check for time picker clicks
+  if (details.timePicker === true) return true;
+  
+  // Check for calendar-related button clicks (like "Choose date")
+  if (details.tag === "BUTTON" && details["aria-label"] === "Choose date") return true;
+  
+  return false;
 };
 
 // Helper function to optimize date field events
@@ -63,8 +108,20 @@ const optimizeDateFieldEvents = (events) => {
   events.forEach((event, index) => {
     const isDateInput = isDateField(event) && event.details.id;
     const isDateClick = isDateFieldClick(event);
+    const isCalendarComplete = isCalendarCompleteEvent(event);
+    const isIntermediateCalendar = isIntermediateCalendarClick(event);
+    const isCalendarInputClickEvent = isCalendarInputClick(event);
     
-    if (isDateInput || isDateClick) {
+    if (isCalendarComplete) {
+      // Calendar complete events should be kept as-is (they already contain the final value)
+      optimizedEvents.push({ event, index });
+    } else if (isIntermediateCalendar) {
+      // Skip intermediate calendar interaction clicks (date picker, time picker, etc.)
+      return; // Skip this event
+    } else if (isCalendarInputClickEvent) {
+      // Skip clicks on calendar input fields (they're just triggers for calendar)
+      return; // Skip this event
+    } else if (isDateInput || isDateClick) {
       // Use selector as the key for grouping (more reliable than ID for clicks)
       const selector = event.details.selector || event.details.id || "";
       
@@ -184,7 +241,14 @@ export const convertToPlaywrightFormat = (events) => {
         if (tag === "input") {
           const inputType = details.type?.toLowerCase();
 
-          if (type === "input" && details.dateField) {
+          // Handle calendar complete events (pre-formatted date/time values)
+          if (details.calendarComplete) {
+            result.push({
+              action: "fill",
+              selector: details.selector || `input[name="${details.name}"]`,
+              value: details.value || "",
+            });
+          } else if (type === "input" && details.dateField) {
             result.push({
               action: "fill",
               selector:
@@ -240,6 +304,12 @@ export const convertToPlaywrightFormat = (events) => {
       }
 
       case "click": {
+        // Skip intermediate calendar interaction clicks
+        if (isIntermediateCalendarClick(event) || isCalendarInputClick(event)) {
+          //skip calendar click in conversion
+          break;
+        }
+        
         // React-Select option handling
         if (tag === "react-select-option") {
           // Find the dropdown trigger (usually an input with combobox role)

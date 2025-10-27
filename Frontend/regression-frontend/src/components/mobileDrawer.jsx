@@ -31,20 +31,23 @@ const MobileDrawer = ({ open, onClose, navigationItems, activeTab, handleTabClic
 
         {/* Navigation Items */}
         <div className="p-4 space-y-2">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleItemClick(item)}
-              className={`w-full p-3 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center space-x-3 ${
-                activeTab === item.id
-                  ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleItemClick(item)}
+                className={`w-full p-3 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center space-x-3 ${
+                  activeTab === item.id
+                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="text-xl" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </>

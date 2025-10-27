@@ -169,11 +169,11 @@ export default function TestPage() {
       }).unwrap();
 
       toast.success("Testcase updated successfully!");
-      setSnackbar({
-        open: true,
-        message: "Test case updated successfully!",
-        severity: "success",
-      });
+      // setSnackbar({
+      //   open: true,
+      //   message: "Test case updated successfully!",
+      //   severity: "success",
+      // });
 
       setIsEditingTestCase(false);
       setSelectedProject(null);
@@ -274,11 +274,11 @@ export default function TestPage() {
 
       toast.success("Test case added successfully!")
 
-      setSnackbar({
-        open: true,
-        message: "Test case added successfully!",
-        severity: "success",
-      });
+      // setSnackbar({
+      //   open: true,
+      //   message: "Test case added successfully!",
+      //   severity: "success",
+      // });
 
       setIsAddingTestCase(false);
       setSelectedProject(null);
@@ -289,6 +289,7 @@ export default function TestPage() {
         message: "Failed to add test case",
         severity: "error",
       });
+      toast.error("Failed to save testcase!")
     }
   };
 
@@ -375,6 +376,7 @@ export default function TestPage() {
       };
       try {
         await createTestCase(payloadData).unwrap();
+        toast.success("Testcase added successfully!")
         setIsAddingTestCase(false);
         setIsAddingJson(false);
         setTestCaseName("");
@@ -382,9 +384,11 @@ export default function TestPage() {
         setStateOption(null);
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);
+        toast.error("Failed to create testcase")
       }
     } catch (err) {
       console.error("Failed to read or parse JSON file:", err);
+      toast.error("Failed to read json file")
     }
   };
 
@@ -541,6 +545,7 @@ export default function TestPage() {
                     variant="outlined"
                     startIcon={<UploadFile />}
                     onClick={() => {
+                      setTestCaseName("");
                       setIsAddingJson(true);
                       setSelectedProject(currentProject);
                     }}
@@ -1144,15 +1149,15 @@ export default function TestPage() {
         >
           <FormControlLabel value="null" control={<Radio />} 
           label={
-            <Tooltip title="Login fresh for each test run">
+            <Tooltip title="Start each test with a login flow" placement="right">
               <span>
-                Fresh Start
+                Login Fresh
               </span>
             </Tooltip>
             }/>
           <FormControlLabel value="save" control={<Radio />} label=
           {
-            <Tooltip title="Remember Login info for future test">
+            <Tooltip title="Remember Login info for future test" placement="right">
               <span>
                  Remember Login 
               </span>
@@ -1161,7 +1166,7 @@ export default function TestPage() {
           />
           <FormControlLabel value="use" control={<Radio />} label=
           {
-            <Tooltip title="Use previously saved login info">
+            <Tooltip title="Use previously saved login info" placement="right">
               <span>
                 Use Saved Login
               </span>
@@ -1184,6 +1189,7 @@ export default function TestPage() {
                 onClick={() => {
                   setIsAddingTestCase(false);
                   setIsEditingTestCase(false);
+                  setTestCaseName("");
                 }}
                 color="inherit"
               >
@@ -1265,17 +1271,29 @@ export default function TestPage() {
                 <FormControlLabel 
                   value="null" 
                   control={<Radio />} 
-                  label="No state" 
+                  label={
+                    <Tooltip title="Start each test with a login flow" placement="right">
+                      <span>Login Fresh</span>
+                    </Tooltip>
+                    }
                 />
                 <FormControlLabel 
                   value="save" 
                   control={<Radio />} 
-                  label="Save state after test" 
+                  label={
+                    <Tooltip title="Remember Login info for future test" placement="right">
+                     <span>Remember Login</span>
+                    </Tooltip>
+                     }
                 />
                 <FormControlLabel 
                   value="use" 
                   control={<Radio />} 
-                  label="Use existing state" 
+                  label={
+                  <Tooltip title="Use previously saved login info" placement="right">
+                    <span>Use Saved Login</span>
+                  </Tooltip>
+                  }
                 />
               </RadioGroup>
             </Box>

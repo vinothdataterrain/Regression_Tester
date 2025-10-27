@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGetSummaryQuery } from '../services/runTestCases.api.services';
 import { useNavigate } from 'react-router-dom';
 import { useGetRecentActionsQuery } from '../services/dashboard.services';
 import TestHistoryGrid from '../components/dashboard/recentActions';
+import { Box } from '@mui/material';
 
 const Dashboard = () => {
   // Mock data - replace with your RTK Query hook
@@ -10,7 +11,14 @@ const Dashboard = () => {
   const { data: summaryData } = useGetSummaryQuery();
   const isLoading = false;
   const error = null;
-  const {data:actions} = useGetRecentActionsQuery({},{refetchOnMountOrArgChange:true});
+  const [paginationModel, setPaginationModel] = useState({
+    page : 0,
+    pageSize: 5,
+  })
+  const {data:actions} = useGetRecentActionsQuery({
+    page : paginationModel?.page + 1,
+    limit : paginationModel?.pageSize,
+  },{refetchOnMountOrArgChange:true});
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -314,13 +322,13 @@ const Dashboard = () => {
         )}
 
 
-{actions && <TestHistoryGrid data={actions} />}
+ 
         {/* Additional Dashboard Sections */}
         {!isLoading && !error && (
           <div style={{
             marginTop: '40px',
-            display: 'grid',
-            gridTemplateColumns: window.innerWidth >= 1024 ? '1fr 1fr' : '1fr',
+            // display: 'grid',
+            // gridTemplateColumns: window.innerWidth >= 1024 ? '1fr 1fr' : '1fr',
             gap: '32px'
           }}>
             {/* Recent Activity */}
@@ -329,28 +337,32 @@ const Dashboard = () => {
               borderRadius: '16px',
               padding: '24px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-              border: '1px solid #e0e0e0'
+              border: '1px solid #e0e0e0',
             }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#212121',
-                margin: '0 0 16px 0'
-              }}>
-                Recent Activity
-              </h3>
-              <div style={{
-                textAlign: 'center',
-                padding: '32px 0',
-                color: '#999999'
-              }}>
-                <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📈</span>
-                <p style={{ margin: 0 }}>Recent test activity will appear here</p>
+              <div className="flex items-start gap-3">
+              <span style={{ fontSize: '48px', lineHeight: '1' }}>📈</span>
+              <div>
+                <h3
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#212121',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Recent Activity
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Recent test activity will appear here
+                </p>
               </div>
+          </div>
+             {actions?.results && <TestHistoryGrid data={actions?.results} rowCount={actions?.count || 0} paginationModel={paginationModel} setPaginationModel={setPaginationModel}/>}
             </div>
+            
 
             {/* System Health */}
-            <div style={{
+            {/* <div style={{
               backgroundColor: 'white',
               borderRadius: '16px',
               padding: '24px',
@@ -391,7 +403,7 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
         )}
       </div>
