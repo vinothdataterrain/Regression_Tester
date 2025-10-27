@@ -1,0 +1,68 @@
+# =========================
+# Global OS / Editor files
+# =========================
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+*.tmp
+*.bak
+*.old
+*.orig
+*.lock
+.idea/
+.vscode/
+.env
+.env.*
+*.local
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.cache/
+coverage/
+.next/
+out/
+*.tsbuildinfo
+
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+db.sqlite3
+*.sqlite3
+*.log
+*.pot
+*.pyc
+.env
+venv/
+env/
+ENV/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+instance/
+celerybeat-schedule
+*.mo
+*.egg-info/
+.eggs/
+*.egg
+Pipfile.lock
+poetry.lock
+
+
+
+
+
