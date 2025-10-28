@@ -36,7 +36,7 @@ export default function TeamMembersPanel() {
       </Alert>
     );
 
-  const members = data || [];
+  const members = data?.members || [];
 
   return (
     <Box p={4}>

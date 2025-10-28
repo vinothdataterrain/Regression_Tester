@@ -70,13 +70,32 @@ class TeamMembersView(APIView):
 
     def get(self, request):
         user = request.user
+
+        # Find the team the current user belongs to
         team = Team.objects.filter(members=user).first()
         if not team:
-            return Response({"detail": "User is not part of any team."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "You are not part of any team."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
+        # Fetch members of that team
         members = team.members.all()
+
+        # Serialize members
         serializer = TeamMemberSerializer(members, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)   
+
+        # Build response
+        return Response(
+            {
+                "team_id": team.id,
+                "team_name": team.name,
+                "team_description": getattr(team, "description", ""),
+                "member_count": members.count(),
+                "members": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )  
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
