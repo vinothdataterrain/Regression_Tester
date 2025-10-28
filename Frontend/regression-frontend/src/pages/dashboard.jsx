@@ -149,7 +149,6 @@ const Dashboard = () => {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                 border: `2px solid ${card.borderColor}`,
                 transition: 'all 0.3s ease',
-                cursor: 'pointer'
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-4px) scale(1.02)';
