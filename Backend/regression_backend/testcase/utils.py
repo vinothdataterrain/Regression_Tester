@@ -29,8 +29,11 @@ def generate_html_report(testcase_id, results):
         )
         rows.append(row)
     path_url = None
+    video_url = None
     if 'path' in results[-1]:
         path_url = results[-1]['path']
+    if 'video' in results[-2]:
+        video_url = results[-2]['video']
     html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -96,6 +99,11 @@ def generate_html_report(testcase_id, results):
             background-color: #065f46;
             font-weight: bold; 
             }}
+        .videobtn{{
+            color: #fff;
+            background-color: #a9a9a9;
+            font-weight: bold;
+        }}
         @media (max-width: 768px) {{
             table, th, td {{
                 font-size: 12px;
@@ -173,6 +181,9 @@ def generate_html_report(testcase_id, results):
         </tr>
         {''.join(rows)}
     </table>
+      {'<br>'}
+      {'<div><button class="videobtn"><a href="' + video_url + '">View Recorded Video</a></button></div>' if video_url else ''}
+      {'<br>'}
       {'<div><button class="bttn"><a href="' + path_url + '">View Path</a></button></div>' if path_url else ''}
 
     <!-- Modal for screenshot display -->

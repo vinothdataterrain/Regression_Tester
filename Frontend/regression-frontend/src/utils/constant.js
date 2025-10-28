@@ -1,4 +1,4 @@
-export const DOMAIN = "http://192.168.3.59:3002";
+export const DOMAIN = "http://192.168.3.59:8000";
 
 const clearSession = () => {
   localStorage.removeItem("access_token");
