@@ -1,12 +1,12 @@
 from rest_framework import viewsets,status
 from rest_framework.views import APIView
-from rest_framework.response import Response
+from .models import Team
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer
+from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.db.models import Count, Avg
@@ -27,6 +27,8 @@ from datetime import datetime
 from .utils import generate_html_report
 from .models import TestActionLog
 from .utils import SetPagination
+from django.contrib.auth.models import User
+
 
 def log_test_action(user, test_name, status, info=None):
     TestActionLog.objects.create(
@@ -36,6 +38,45 @@ def log_test_action(user, test_name, status, info=None):
         additional_info=info or {}
     )
 
+class AddTeamMemberView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        team = Team.objects.filter(members=user).first()
+
+        if not team:
+            return Response({"detail": "You are not assigned to any team."}, status=400)
+
+        username = request.data.get("username")
+        if not username:
+            return Response({"detail": "Username is required."}, status=400)
+
+        try:
+            new_member = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=404)
+
+        # Optional: ensure user not already in another team
+        if Team.objects.filter(members=new_member).exists():
+            return Response({"detail": "User already belongs to another team."}, status=400)
+
+        team.members.add(new_member)
+        return Response({"detail": f"{username} added to team {team.name}."})
+
+
+class TeamMembersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        team = Team.objects.filter(members=user).first()
+        if not team:
+            return Response({"detail": "User is not part of any team."}, status=status.HTTP_404_NOT_FOUND)
+
+        members = team.members.all()
+        serializer = TeamMemberSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)   
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
@@ -43,10 +84,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user).order_by('id')
+        user = self.request.user
+        team = Team.objects.filter(members=user).first()
+        return Project.objects.filter(team = team).order_by('id')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)    
+        user = self.request.user
+        team = Team.objects.filter(members=user).first()
+        if not team:
+            raise ValueError("User does not belong to a team.")
+        serializer.save(team=team)
+        #serializer.save(user=self.request.user)    
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -60,9 +108,12 @@ class SummaryView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         user = request.user
-        projects = Project.objects.filter(user=user)
-        testcases = TestCase.objects.filter(project__user=user)
-        teststeps = TestStep.objects.filter(testcase__project__user=user)
+        team = Team.objects.filter(members=user).first()
+        if not team:
+            return Response({"detail": "User is not assigned to any team."}, status=400)
+        projects = Project.objects.filter(team=team)
+        testcases = TestCase.objects.filter(project__team=team)
+        teststeps = TestStep.objects.filter(testcase__project__team=team)
         project_count = projects.count()
         testcase_count = testcases.count()
         teststeps_count = teststeps.count()
@@ -169,7 +220,14 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         status=status.HTTP_200_OK
     )
 
-    
+class UserTeamsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        teams = Team.objects.filter(members=user).values("id", "name")
+        return Response(list(teams))
+
 class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TestActionLog.objects.all().order_by('-id')
     serializer_class = TestActionLogSerializer

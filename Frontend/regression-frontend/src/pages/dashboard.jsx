@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useGetRecentActionsQuery } from '../services/dashboard.services';
 import TestHistoryGrid from '../components/dashboard/recentActions';
 import { Box } from '@mui/material';
+import { Person } from '@mui/icons-material';
+import TeamMembersPanel from '../components/dashboard/TeamView';
+//import { useGetUserTeamsQuery } from '../services/login.api.services';
 
 const Dashboard = () => {
   // Mock data - replace with your RTK Query hook
@@ -19,7 +22,7 @@ const Dashboard = () => {
     page : paginationModel?.page + 1,
     limit : paginationModel?.pageSize,
   },{refetchOnMountOrArgChange:true});
-
+  //const {data: team} = useGetUserTeamsQuery();
   // Loading skeleton component
   const LoadingSkeleton = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -248,7 +251,7 @@ const Dashboard = () => {
               Your test suite is performing well. Monitor your automation health,
               track test execution trends, and ensure quality across your applications.
             </p>
-            
+
             {/* Quick Actions */}
             <div style={{
               display: 'flex',
@@ -275,7 +278,7 @@ const Dashboard = () => {
               onClick={() => navigate("/pythonScripts")}
               >
                 <span>🧪</span>
-                View Scripts
+                View Playwright Scripts
               </button>
               <button style={{
                 backgroundColor: 'white',
@@ -321,7 +324,7 @@ const Dashboard = () => {
           </div>
         )}
 
-
+        <TeamMembersPanel />
  
         {/* Additional Dashboard Sections */}
         {!isLoading && !error && (

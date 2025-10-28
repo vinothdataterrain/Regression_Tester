@@ -5,6 +5,15 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
+class Team(models.Model):
+    name = models.CharField(max_length=255)
+    members = models.ManyToManyField(User, related_name="teams")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class TestActionLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     test_name = models.CharField(max_length=255)
@@ -21,7 +30,9 @@ class Project(models.Model):
     url = models.URLField(max_length=500)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects", null=True, blank=True)
+    team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name="projects",)
+    #user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects", null=True, blank=True)
+
 
     def __str__(self):
         return self.name

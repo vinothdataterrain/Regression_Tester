@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult, TestActionLog
 from rest_framework.fields import CurrentUserDefault
+from django.contrib.auth.models import User
+
+class TeamMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name"]
 
 class TestStepSerializer(serializers.ModelSerializer):
     step_number = serializers.SerializerMethodField()

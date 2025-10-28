@@ -12,21 +12,21 @@ const TestHistoryGrid = ({data, rowCount, paginationModel, setPaginationModel}) 
     setRows(data || []);
   }, [data]);
 
-  // useEffect(() => {
-  //   fetchData();
-  // }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // const fetchData = async () => {
-  //   setLoading(true);
-  //   try {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
      
-  //     setRows(data);
-  //   } catch (error) {
-  //     console.error('Error fetching data:', error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+      setRows(data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDownloadReport = (reportPath) => {
     const url = `${DOMAIN}/media/${reportPath}`

@@ -54,4 +54,4 @@ export const LoginFeed = api.injectEndpoints({
   }),
 });
 
-export const { useLoginMutation, useCreateUserMutation, useUserLogoutMutation } = LoginFeed;
+export const { useLoginMutation, useCreateUserMutation, useUserLogoutMutation, } = LoginFeed;

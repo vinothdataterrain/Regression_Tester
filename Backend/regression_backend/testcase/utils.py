@@ -10,6 +10,24 @@ class SetPagination(PageNumberPagination):
 
 def generate_html_report(testcase_id, results):     
     """Generate a blue-themed HTML report and save it in MEDIA folder."""
+    rows = []
+    for step in results:
+        if 'action' not in step:
+            continue
+
+        screenshot_html = f'<img src="{step["screenshot"]}" width="150" class="screenshot-thumbnail" onclick="openModal(this)" />' if 'screenshot' in step else ''
+
+        row = (
+            f"<tr class='{step['status']}'>"
+            f"<td>{step.get('step_number', '')}</td>"
+            f"<td>{step['action']}</td>"
+            f"<td>{step.get('value', '')}</td>"
+            f"<td>{step['status'].capitalize()}</td>"
+            f"<td>{step.get('error', '')}</td>"
+            f"<td>{screenshot_html}</td>"
+            "</tr>\n"
+        )
+        rows.append(row)
     path_url = None
     if 'path' in results[-1]:
         path_url = results[-1]['path']
@@ -71,7 +89,10 @@ def generate_html_report(testcase_id, results):
             font-weight: bold;
         }}
         .bttn{{
-            color: #dcfce7;
+            color: #fff;
+            border-radius: 8px;
+            margin-top: 20px;
+            padding: 2px;
             background-color: #065f46;
             font-weight: bold; 
             }}
@@ -150,17 +171,7 @@ def generate_html_report(testcase_id, results):
             <th>Error</th>
             <th>Screenshot</th>
         </tr>
-        {''.join([
-            f"<tr class='{step['status']}'>"
-            f"<td>{step['step_number'] if 'step_number' in step else ''}</td>"
-            f"<td>{step['action']}</td>"
-            f"<td>{step['value'] if 'value' in step else ''}</td>"
-            f"<td>{step['status'].capitalize()}</td>"
-            f"<td>{step.get('error','') if 'error' in step else ''}</td>"
-            f"<td>{f'<img src=\"{step['screenshot']}\" width=\"150\" class=\"screenshot-thumbnail\" onclick=\"openModal(this)\" />' if 'screenshot' in step else ''}</td>"
-            "</tr>"
-            for step in results if 'action' in step
-        ])}
+        {''.join(rows)}
     </table>
       {'<div><button class="bttn"><a href="' + path_url + '">View Path</a></button></div>' if path_url else ''}
 
