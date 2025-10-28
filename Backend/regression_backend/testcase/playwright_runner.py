@@ -42,19 +42,38 @@ async def run_testcase_async(steps, values=None, name = ""):
     har_file_path = None
     if name.strip():
         har_file_path = os.path.join(har_dir, f"{name}.har")
+    
+    video_dir = os.path.join(settings.MEDIA_ROOT, "videos")
+    os.makedirs(video_dir, exist_ok=True)
+    video_file_path = None
+    if name.strip():
+        video_file_path = os.path.join(video_dir, f"{name}.webm")
+        
     results = []
     async with async_playwright() as p:
+
         if har_file_path and os.path.exists(har_file_path):
-            os.remove(har_file_path) 
+            os.remove(har_file_path)
+        if video_file_path and os.path.exists(video_file_path):
+            os.remove(video_file_path) 
         browser = await p.chromium.launch(headless=True,slow_mo=50)
         if(steps[0]["action"] == "use"):
             states_dir = os.path.join(settings.MEDIA_ROOT, "storage_states")
             os.makedirs(states_dir, exist_ok=True)
             file_path = os.path.join(states_dir, steps[0]["value"])
-            context = await browser.new_context(storage_state=file_path,record_har_path=str(har_file_path))
+            context = await browser.new_context(
+                storage_state=file_path,
+                record_har_path=str(har_file_path),
+                record_video_dir=video_dir,
+                record_video_size={"width": 1280, "height": 720}
+            )
             steps = steps[1:]
         else:
-            context = await browser.new_context(record_har_path=str(har_file_path))
+            context = await browser.new_context(
+                record_har_path=str(har_file_path),
+                record_video_dir=video_dir,
+                record_video_size={"width": 1280, "height": 720}
+            )
         page = await context.new_page()
 
         for idx, step in enumerate(steps, start=1):
@@ -242,6 +261,34 @@ async def run_testcase_async(steps, values=None, name = ""):
 
         await context.close()
         await browser.close()
+
+        
+         # --- Find the latest recorded video file and rename it to testcase name ---
+        latest_video_path = None
+        for root, _, files in os.walk(video_dir):
+            webm_files = [f for f in files if f.endswith(".webm")]
+            if webm_files:
+                latest_video_path = max(
+                    [os.path.join(root, f) for f in webm_files],
+                    key=os.path.getmtime
+                )
+
+        # Rename the video file to testcase name if it exists and we have a name
+        if latest_video_path and name.strip():
+            try:
+                os.rename(latest_video_path, video_file_path)
+                latest_video_path = video_file_path
+            except Exception as e:
+                # If rename fails, just use the original path
+                pass
+
+       
+        # --- Attach video URL to results ---
+        if latest_video_path:
+            relative_path = os.path.relpath(latest_video_path, settings.MEDIA_ROOT)
+            video_url = os.path.join(settings.MEDIA_URL, relative_path).replace("\\", "/")
+            results.append({"video": video_url})
+
         if har_file_path:
             har_url = os.path.join(settings.MEDIA_URL, "har_dir", f"{name}.har")
             results.append({"path": har_url})
