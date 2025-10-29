@@ -1,4 +1,6 @@
-import { api } from "./api";
+import { api, rtkQueryServiceTags } from "./api";
+const {ADD_MEMBER, TEAM_MEMBERS} = rtkQueryServiceTags;
+
 
 export const TeamApis = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -7,16 +9,19 @@ export const TeamApis = api.injectEndpoints({
         url: "/user/teams/",
         method: "GET",
       }),
+      providesTags : [TEAM_MEMBERS]
     }),
     addTeamMember: builder.mutation({
-      query: (username) => ({
+      query: (data) => ({
         url: "/team/add-member/",
         method: "POST",
-        body: { username },
+        body: data,
       }),
+      invalidatesTags: [TEAM_MEMBERS, ADD_MEMBER]
     }),
     getTeamMembers: builder.query({
       query: () => "/team/members/",
+      providesTags : [TEAM_MEMBERS]
     }),
   }),
 });

@@ -61,11 +61,12 @@ class TestCaseSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     testcases = TestCaseSerializer(many=True, read_only=True)
-    user = serializers.HiddenField(default=CurrentUserDefault())
+    # user = serializers.HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Project
-        fields = ["id", "name", "url", "description", "created_at", "testcases","user"]
+        fields = ["id", "name", "url", "description", "created_at", "testcases"]
+        read_only_fields = ["testcases", "created_at", "team"]
 
 class ScriptResultSerializer(serializers.ModelSerializer):
     class Meta:

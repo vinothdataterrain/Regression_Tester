@@ -7,6 +7,7 @@ import { setUserdata, resetUserdata } from "../features/userSlice";
 import { jwtDecode } from "jwt-decode";
 import { Menu as MenuIcon, Close as CloseIcon, Dataset, Analytics, Article, Terminal } from '@mui/icons-material';
 import MobileDrawer from './mobileDrawer';
+import { api } from "../services/api";
 
 const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLogout }) => {
   const [anchorEl, setAnchorEl] = useState(false);
@@ -152,6 +153,7 @@ const Navbar = () => {
     setAnchorEl(null);
     // Clear user data from Redux store
     dispatch(resetUserdata());
+    dispatch(api.util.resetApiState());
     logout({ userLogout, navigate });
   };
 

@@ -37,6 +37,8 @@ import MoreIcon from "../assets/icons/moreiconRed.svg";
 import ViewIcon from "../assets/images/view1x.png";
 import { useNavigate } from "react-router-dom";
 import ProjectCard from "../components/Cardview";
+import TeamMembersPanel from "../components/dashboard/TeamView";
+import { toast } from "react-toastify";
 
 export default function Project() {
   const navigate = useNavigate();
@@ -57,11 +59,20 @@ export default function Project() {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
-  const [createProject] = useCreateProjectMutation();
+  const [createProject, {isSuccess : isProjectSuccess, isError : isProjectError, error : ProjectError, isLoading : isProjectLoading}] = useCreateProjectMutation();
 
   const [editProject] = useUpdateProjectMutation();
 
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({} , {refetchOnMountOrArgChange : true});
+
+  useEffect(() => {
+    if(isProjectSuccess){
+      toast.success("Project Added Successfully!")
+    }
+    else if(isProjectError && ProjectError){
+      toast.error(ProjectError?.data?.detail || "Failed to add project")
+    }
+  },[isProjectSuccess, isProjectError])
 
   useEffect(() => {
     if (projectsData?.results) {
@@ -106,11 +117,6 @@ export default function Project() {
       setProjectUrl("");
       setProjectDescription("");
       setIsAddingProject(null);
-      setSnackbar({
-        open: true,
-        message: "Project added successfully!",
-        severity: "success",
-      });
     } catch (error) {
       console.error("Failed to create project:", error);
     }

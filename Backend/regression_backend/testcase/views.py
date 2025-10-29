@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -30,10 +31,11 @@ from .utils import SetPagination
 from django.contrib.auth.models import User
 
 
-def log_test_action(user, test_name, status, info=None):
+def log_test_action(user, test_name, status, project_name=None, info=None):
     TestActionLog.objects.create(
         user=user,
         test_name=test_name,
+        project=project_name or "",
         status=status,
         additional_info=info or {}
     )
@@ -43,27 +45,51 @@ class AddTeamMemberView(APIView):
 
     def post(self, request):
         user = request.user
-        team = Team.objects.filter(members=user).first()
-
-        if not team:
-            return Response({"detail": "You are not assigned to any team."}, status=400)
-
+        team_id = request.data.get("team_id")
         username = request.data.get("username")
-        if not username:
-            return Response({"detail": "Username is required."}, status=400)
 
+        if not team_id or not username:
+            return Response(
+                {"detail": "Both 'team_id' and 'username' are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Fetch project and team
+        team = Team.objects.filter(id=team_id).first()
+        if not team:
+            return Response({"detail": "Team not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Ensure current user is a member of this team
+        if not team.members.filter(id=user.id).exists():
+            return Response(
+                {"detail": "You are not a member of this team."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the user to be added
         try:
             new_member = User.objects.get(username=username)
         except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=404)
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Optional: ensure user not already in another team
-        if Team.objects.filter(members=new_member).exists():
-            return Response({"detail": "User already belongs to another team."}, status=400)
+        # Ensure new member not already part of another team
+        if team.members.filter(id=new_member.id).exists():
+            return Response({"detail": "User already part of this team."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- Check if user belongs to *any other* team ---
+        other_team = Team.objects.filter(members=new_member).exclude(id=team.id).first()
+        if other_team:
+            return Response(
+                {"detail": f"User already belongs to another team ('{other_team.name}')."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Add new member
         team.members.add(new_member)
-        return Response({"detail": f"{username} added to team {team.name}."})
-
+        return Response(
+            {"detail": f"{username} added to team '{team.name}' successfully."},
+            status=status.HTTP_200_OK
+        )
 
 class TeamMembersView(APIView):
     permission_classes = [IsAuthenticated]
@@ -72,31 +98,17 @@ class TeamMembersView(APIView):
         user = request.user
 
         # Find the team the current user belongs to
-        team = Team.objects.filter(members=user).first()
-        if not team:
-            return Response(
-                {"detail": "You are not part of any team."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        teams = Team.objects.filter(members=user).prefetch_related("members")
 
-        # Fetch members of that team
-        members = team.members.all()
+        if not teams.exists(): 
+            return Response( {"detail": "You are not part of any team."}, status=status.HTTP_404_NOT_FOUND, )
 
-        # Serialize members
-        serializer = TeamMemberSerializer(members, many=True)
-
-        # Build response
-        return Response(
-            {
-                "team_id": team.id,
-                "team_name": team.name,
-                "team_description": getattr(team, "description", ""),
-                "member_count": members.count(),
-                "members": serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )  
-
+        response_data = [] 
+        for team in teams: 
+            members = team.members.all() 
+            serializer = TeamMemberSerializer(members, many=True) 
+            response_data.append({ "team_id": team.id, "team_name": team.name, "member_count": members.count(), "members": serializer.data, }) 
+        return Response(response_data, status=status.HTTP_200_OK)
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
@@ -104,16 +116,25 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        team = Team.objects.filter(members=user).first()
-        return Project.objects.filter(team = team).order_by('id')
+        team = Team.objects.filter(members=user)
+        return Project.objects.filter(team__in=team).order_by('id')
 
     def perform_create(self, serializer):
         user = self.request.user
-        team = Team.objects.filter(members=user).first()
-        if not team:
-            raise ValueError("User does not belong to a team.")
+         # Ensure user is not already in a team
+        existing_team = Team.objects.filter(members=user).first()
+        if existing_team:
+            raise ValidationError({"detail": "You already belong to a team and cannot create a new one."})
+        
+        # Create a new team for the project
+        team = Team.objects.create(
+            name=f"{serializer.validated_data.get('name')} Team"
+        )
+        team.members.add(user)
+
+        # Save the project linked to this team
         serializer.save(team=team)
-        #serializer.save(user=self.request.user)    
+   
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -181,7 +202,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             results = loop.run_until_complete(run_testcase_async(steps, values=None, name=testcase.name))
             report_path = generate_html_report(testcase.id, results)
             project = testcase.project
-            log_test_action(user=request.user, test_name=testcase.name, status="completed", info={"testcase_id": testcase.id, "report": report_path, "project":project.name})
+            log_test_action(user=request.user, test_name=testcase.name, status="completed", project_name=project.name, info={"testcase_id": testcase.id, "report": report_path, "project":project.name})
             return Response({
                 "testcase_id": testcase.id,
                 "results": results,
@@ -200,7 +221,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         if not latest_run:
             return Response({"message": "No runs found for this testcase"}, status=404)
         project = testcase.project
-        log_test_action(user=request.user, test_name=testcase.name, status=latest_run.status, info={"testcase_id": testcase.id, "report": latest_run.result_file.url if latest_run.result_file else None, "project":project.name , "progress": latest_run.progress})
+        log_test_action(user=request.user, test_name=testcase.name, status=latest_run.status, project_name=project.name, info={"testcase_id": testcase.id, "report": latest_run.result_file.url if latest_run.result_file else None, "project":project.name , "progress": latest_run.progress})
 
         return Response({
             "testcase_id": testcase.id,
@@ -251,6 +272,18 @@ class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TestActionLog.objects.all().order_by('-id')
     serializer_class = TestActionLogSerializer
     pagination_class = SetPagination
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Get all teams where the user is a member
+        teams = Team.objects.filter(members=user)
+
+        # Get all project names under those teams
+        project_names = Project.objects.filter(team__in=teams).values_list("name", flat=True)
+
+        # Filter logs whose project name matches those projects
+        return TestActionLog.objects.filter(project__in=project_names).order_by("-id")
          
 class PlaywrightExecutorWithScreenshots:
     def __init__(self):
