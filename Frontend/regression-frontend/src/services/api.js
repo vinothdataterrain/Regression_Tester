@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const API_BASE = "http://127.0.0.1:8000/api"; // adjust if backend port differs
+export const backend_url = import.meta.env.VITE_BASE_URL
+export const baseUrl = `${backend_url}/api/`;
 
 export const rtkQueryServiceTags = {
   LOGIN: "Login",
@@ -17,7 +18,7 @@ const { LOGIN, PROJECT, TEST_CASE, TEST_RESULT, USER, ADD_MEMBER, TEAM_MEMBERS }
 export const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE,
+    baseUrl,
     prepareHeaders: (headers) =>{
       const token = localStorage.getItem("access_token"); // or from state
       if (token) {
