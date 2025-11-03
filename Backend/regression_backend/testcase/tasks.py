@@ -41,12 +41,20 @@ def process_testcase(test_run_id, input_file_path=None):
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 results = loop.run_until_complete(run_testcase_async(steps, values=row_data))
+                step_results = [r for r in results if "action" in r and "status" in r]
+                print(results)
                 pretty_results = "\n".join(
-                    [f"{r['action']} | {r['value']} | {r['status']}, " for r in results]
+                    [f"{r['action']} | {r['value']} | {r['status']}, " for r in step_results]
                     )
-                row_status = "PASS" if all(r["status"] == "passed" for r in results) else "FAIL"
+                row_status = "PASS" if all(r["status"] == "passed" for r in step_results) else "FAIL"
+                print(row_status)
+                print(pretty_results)
                 ws.cell(row=row_idx, column=result_col, value=row_status)
                 ws.cell(row=row_idx, column=result_col + 1, value=pretty_results)
+                video_info = results[-1]["video"] if "video" in results[-1] else None
+                if video_info:
+                    ws.cell(row=row_idx, column=result_col + 2, value=video_info)
+
             except Exception as e:
                 ws.cell(row=row_idx, column=result_col, value=f"FAIL: {str(e)}")
 

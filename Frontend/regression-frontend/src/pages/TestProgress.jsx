@@ -34,7 +34,7 @@ import {
   useGetTaskStatusQuery,
 } from "../services/runTestCases.api.services";
 import { toast } from "react-toastify";
-import { formatTableNullValues } from "../utils/constant";
+import { formatTableNullValues, DOMAIN } from "../utils/constant";
 
 const TestCaseProgress = () => {
   const { id } = useParams();
@@ -211,7 +211,7 @@ const TestCaseProgress = () => {
   const downloadResult = (resultFile, testName) => {
     if (resultFile) {
       const link = document.createElement("a");
-      link.href = "http://127.0.0.1:8000" + resultFile;
+      link.href = `${DOMAIN}${resultFile}`
       link.setAttribute("download", `${testName}_results.xlsx`);
       document.body.appendChild(link);
       link.click();
