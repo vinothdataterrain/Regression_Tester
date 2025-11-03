@@ -186,6 +186,17 @@ function recordInitialUrl () {
 //   return null;
 // }
 
+// Check uniqueness of a selector
+function isUnique(selector) {
+  try {
+    const matches = document.querySelectorAll(selector);
+    return matches.length === 1;
+  } catch {
+    return false;
+  }
+}
+
+
 function getNearestSection(el) {
   if (!el) return null;
 
@@ -224,8 +235,34 @@ function getSelector(el) {
     return `${el.tagName.toLowerCase()}[name="${CSS.escape(el.name)}"]`;
   }
 
+   // Headless UI component handling
+  const role = el.getAttribute("role");
+  const headlessId = el.id || "";
+  const headlessClasses = el.className || "";
+
+  const isHeadlessUI =
+    headlessId.startsWith("headlessui-") ||
+    /headlessui/i.test(headlessClasses) ||
+    (role && ["option", "listbox", "menuitem", "combobox"].includes(role));
+
+  if (isHeadlessUI) {
+    const visibleText = (el.innerText || "").trim();
+
+    // Prefer stable role + text
+    if (role && visibleText) {
+      return `${tag}[role="${role}"]:has-text("${visibleText}")`;
+    }
+
+    if (role) {
+      return `${tag}[role="${role}"]`;
+    }
+
+    if (visibleText) {
+      return `${tag}:has-text("${visibleText}")`;
+    }
+  }
 // 2. ID
-  if (el.id) {
+  if (el.id && !el.id.startsWith("headlessui-")) {
     return `#${CSS.escape(el.id)}`;
   }
 
@@ -355,6 +392,7 @@ document.addEventListener("click", (e) => {
     class: target.className,
     text: elementText,
     selector: getSelector(target),
+    role: target.getAttribute("role") || "",
     "aria-label": target.getAttribute("aria-label") || "",
     name: target.name || "",
     placeholder: target.placeholder || "",
@@ -673,6 +711,7 @@ document.addEventListener("input", (e) => {
       id: target.id,
       selector: getSelector(target),
       type: target.type || "",
+      role: target.getAttribute("role") || "",
       "aria-label": target.getAttribute("aria-label") || "",
       name: target.name || "",
       placeholder: target.placeholder || "",
@@ -698,6 +737,7 @@ document.addEventListener("change", (e) => {
     id: target.id,
     selector: getSelector(target),
     type: target.type || "",
+    role: target.getAttribute("role") || "",
     "aria-label": target.getAttribute("aria-label") || "",
     name: target.name || "",
     placeholder: target.placeholder || ""
@@ -749,6 +789,7 @@ document.addEventListener("change", (e) => {
       id: target.id,
       selector: getSelector(target),
       type: target.type || "",
+      role: target.getAttribute("role") || "",
       "aria-label": target.getAttribute("aria-label") || "",
       name: target.name || "",
       placeholder: target.placeholder || "",

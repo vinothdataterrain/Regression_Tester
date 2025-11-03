@@ -162,6 +162,10 @@ export default function Project() {
     setProjectId(selectedItem.id);
   };
 
+  const handleClick = (id) => {
+    navigate(`/projects/${id}`)
+  }
+
   const ProjectsTableColumn = [
     {
       field: "action",
@@ -195,8 +199,8 @@ export default function Project() {
       minWidth: 200,
       renderCell: (params) => {
         return (
-          <div className="cursor-pointer flex justify-start items-center h-full w-full ">
-            <span className="text-black">{params?.row?.name ?? "..."}</span>
+          <div className="cursor-pointer flex justify-start items-center h-full w-full " onClick={() => handleClick(params?.row?.id)}>
+            <span className="text-blue-600 underline">{params?.row?.name ?? "..."}</span>
           </div>
         );
       },
