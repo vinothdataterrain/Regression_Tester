@@ -32,6 +32,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import {
   useGetAllTaskStatusQuery,
   useGetTaskStatusQuery,
+  useGetAllReportsQuery,
 } from "../services/runTestCases.api.services";
 import { toast } from "react-toastify";
 import { formatTableNullValues, DOMAIN } from "../utils/constant";
@@ -39,13 +40,17 @@ import { formatTableNullValues, DOMAIN } from "../utils/constant";
 const TestCaseProgress = () => {
   const { id } = useParams();
   const [formattedRow, setFormattedRow] = useState(null);
+  const [formattedReportRow, setFormattedReportRow] = useState(null);
 
   // Keep track if toast has been shown
   const toastShown = useRef(false);
   const [polling, setPolling] = useState(true);
 
+  const { data: ReportsData, isLoading: isReportsLoading } =
+    useGetAllReportsQuery({}, {refetchOnMountOrArgChange : true});
+
   const { data: ResultData, isLoading: isResultsLoading } =
-    useGetAllTaskStatusQuery();
+    useGetAllTaskStatusQuery({}, {refetchOnMountOrArgChange : true});
 
   const { data } = useGetTaskStatusQuery(id, {
     skip: !id,
@@ -60,6 +65,13 @@ const TestCaseProgress = () => {
   }, [ResultData]);
 
   useEffect(() => {
+    if (ReportsData) {
+      const FormattedReportData = formatTableNullValues(ReportsData);
+      setFormattedReportRow(FormattedReportData);
+    }
+  }, [ReportsData]);
+
+  useEffect(() => {
     if (data?.status === "completed") {
       setPolling(false); // stop polling
       if (!toastShown.current) {
@@ -69,7 +81,7 @@ const TestCaseProgress = () => {
     }
   }, [data]);
 
-   const ResultTableColumns = [
+  const ResultTableColumns = [
     {
       field: "testcase_id",
       headerName: "Test Case ID",
@@ -79,10 +91,14 @@ const TestCaseProgress = () => {
       renderCell: (params) => {
         return (
           <div className="cursor-pointer flex justify-start items-center h-full w-full">
-            <Chip 
-              label={`#${params?.row?.testcase_id}`} 
-              size="small" 
-              color={params?.row?.testcase_id === parseInt(id) ? "primary" : "default"}
+            <Chip
+              label={`#${params?.row?.testcase_id}`}
+              size="small"
+              color={
+                params?.row?.testcase_id === parseInt(id)
+                  ? "primary"
+                  : "default"
+              }
             />
           </div>
         );
@@ -113,14 +129,14 @@ const TestCaseProgress = () => {
       renderCell: (params) => {
         return (
           <div className="cursor-pointer flex justify-start items-center h-full w-full">
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                fontFamily: 'monospace',
-                fontSize: '0.75rem',
-                backgroundColor: 'grey.100',
-                padding: '2px 6px',
-                borderRadius: '4px'
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.75rem",
+                backgroundColor: "grey.100",
+                padding: "2px 6px",
+                borderRadius: "4px",
               }}
             >
               {params?.row?.run_id ?? "..."}
@@ -138,13 +154,15 @@ const TestCaseProgress = () => {
       renderCell: (params) => {
         return (
           <div className="cursor-pointer flex justify-start items-center h-full w-full">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {getStatusIcon(params?.row?.status)}
               <Chip
                 label={params?.row?.status ?? "..."}
                 size="small"
                 color={getStatusColor(params?.row?.status)}
-                variant={params?.row?.status === 'completed' ? 'filled' : 'outlined'}
+                variant={
+                  params?.row?.status === "completed" ? "filled" : "outlined"
+                }
               />
             </Box>
           </div>
@@ -158,12 +176,19 @@ const TestCaseProgress = () => {
       id: 4,
       minWidth: 130,
       renderCell: (params) => {
-        const progressValue = params?.row?.progress 
-          ? parseInt(params.row.progress.replace('%', ''), 10) 
+        const progressValue = params?.row?.progress
+          ? parseInt(params.row.progress.replace("%", ""), 10)
           : 0;
         return (
           <div className="cursor-pointer flex justify-start items-center h-full w-full">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                width: "100%",
+              }}
+            >
               <LinearProgress
                 variant="determinate"
                 value={progressValue}
@@ -189,8 +214,118 @@ const TestCaseProgress = () => {
             <Tooltip title={`Download ${params?.row?.name} Results`}>
               <span>
                 <IconButton
-                  onClick={() => downloadResult(params?.row?.result_file, params?.row?.name)}
-                  disabled={params?.row?.status !== 'completed'}
+                  onClick={() =>
+                    downloadResult(params?.row?.result_file, params?.row?.name)
+                  }
+                  disabled={params?.row?.status !== "completed"}
+                  size="small"
+                  color="primary"
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const ReportTableColumns = [
+    {
+      field: "testcase_id",
+      headerName: "Test Case ID",
+      flex: 1,
+      id: 0,
+      minWidth: 120,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-start items-center h-full w-full">
+            <Chip
+              label={`#${params?.row?.testcase_id}`}
+              size="small"
+              color={
+                params?.row?.testcase_id === parseInt(id)
+                  ? "primary"
+                  : "default"
+              }
+            />
+          </div>
+        );
+      },
+    },
+    {
+      field: "name",
+      headerName: "Test Case Name",
+      flex: 2,
+      id: 1,
+      minWidth: 200,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-start items-center h-full w-full">
+            <Typography variant="body2" fontWeight="medium">
+              {params?.row?.name ?? "..."}
+            </Typography>
+          </div>
+        );
+      },
+    },
+    {
+      field: "project",
+      headerName: "Project",
+      flex: 1,
+      id: 0,
+      minWidth: 120,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-start items-center h-full w-full">
+            <Typography variant="body2" fontWeight="medium">
+              {params?.row?.project ?? "..."}
+            </Typography>
+          </div>
+        );
+      },
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      flex: 1.5,
+      id: 3,
+      minWidth: 140,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-start items-center h-full w-full">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {getStatusIcon(params?.row?.status)}
+              <Chip
+                label={params?.row?.status ?? "..."}
+                size="small"
+                color={getStatusColor(params?.row?.status)}
+                variant={
+                  params?.row?.status === "completed" ? "filled" : "outlined"
+                }
+              />
+            </Box>
+          </div>
+        );
+      },
+    },
+    {
+      field: "action",
+      headerName: "Action",
+      flex: 1,
+      id: 5,
+      minWidth: 100,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-center items-center h-full w-full">
+            <Tooltip title={`Download ${params?.row?.name} Reports`}>
+              <span>
+                <IconButton
+                  onClick={() =>
+                    downloadReport(params?.row?.report, params?.row?.name)
+                  }
+                  disabled={params?.row?.status !== "completed"}
                   size="small"
                   color="primary"
                 >
@@ -211,8 +346,22 @@ const TestCaseProgress = () => {
   const downloadResult = (resultFile, testName) => {
     if (resultFile) {
       const link = document.createElement("a");
-      link.href = `${DOMAIN}${resultFile}`
+      link.href = `${DOMAIN}${resultFile}`;
       link.setAttribute("download", `${testName}_results.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Result Downloaded successfully!");
+    } else {
+      toast.error("Result file not available yet!");
+    }
+  };
+  const downloadReport = (report, testName) => {
+    if (report) {
+      const link = document.createElement("a");
+      window.open(`${DOMAIN}${report}`, "_blank");
+      link.href = `${DOMAIN}${report}`;
+      link.setAttribute("download", `${testName}.html`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -325,9 +474,74 @@ const TestCaseProgress = () => {
               mb: 3,
             }}
           >
+            <Tooltip title="View detailed HTML reports for each test case run" placement="right">
             <Typography variant="h5" component="h2">
-              {id ? "All Test Results" : "Test Case Results"}
+              {"Test Case Execution Reports (HTML)"}
             </Typography>
+            </Tooltip>
+            <Chip
+              label={`${ReportsData?.length || 0} Reports`}
+              color="primary"
+              variant="outlined"
+            />
+          </Box>
+
+          {isReportsLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              minHeight="200px"
+            >
+              <CircularProgress />
+              <Typography sx={{ ml: 2 }}>Loading reports...</Typography>
+            </Box>
+          ) : ReportsData && ReportsData.length > 0 ? (
+            <DataGrid
+              getRowId={(res) => res.testcase_id}
+              rows={formattedReportRow}
+              columns={ReportTableColumns}
+            />
+          ) : (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              minHeight="200px"
+              sx={{ color: "text.secondary" }}
+            >
+              <PendingIcon sx={{ fontSize: 48, mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                No test reports available
+              </Typography>
+              <Typography variant="body2">
+                Run some test cases to see reports here
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card elevation={2} sx={{ mt : 4}}>
+        <CardContent>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+            }}
+          >
+            <Tooltip
+              title={"View Excel reports generated from bulk test runs"}
+              placement="right"
+            >
+              <Typography variant="h5" component="h2">
+                {id ? "All Test Results" : "Excel Summary Reports"}
+              </Typography>
+            </Tooltip>
+
             <Chip
               label={`${ResultData?.length || 0} Results`}
               color="primary"
@@ -371,6 +585,7 @@ const TestCaseProgress = () => {
           )}
         </CardContent>
       </Card>
+      
     </Container>
   );
 };

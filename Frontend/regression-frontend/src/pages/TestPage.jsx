@@ -94,7 +94,7 @@ export default function TestPage() {
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
- // const [isRunning, setIsRunning] = useState(false);
+  // const [isRunning, setIsRunning] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isAddingTestCase, setIsAddingTestCase] = useState(false);
@@ -102,7 +102,7 @@ export default function TestPage() {
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
   const [testCaseReports, setTestCaseReports] = useState({});
-  
+
   const { success } = useToast();
   const [showBackdrop, setShowBackdrop] = useState(false);
   const theme = useTheme();
@@ -115,12 +115,19 @@ export default function TestPage() {
 
   const [createTestCase] = useCreateTestCaseMutation();
   const [EditTestCase] = useEditTestCaseMutation();
-  const [RunTestCase, {isSuccess : isTestcaseSuccess, isError : isTestcaseError, error : testcaseError, isLoading : testcaseLoading}] = useRunTestCaseMutation();
+  const [
+    RunTestCase,
+    {
+      isSuccess: isTestcaseSuccess,
+      isError: isTestcaseError,
+      error: testcaseError,
+      isLoading: testcaseLoading,
+    },
+  ] = useRunTestCaseMutation();
   const [deleteTestCase] = useDeleteTestCaseMutation();
 
+  const { data, isLoading, error } = useGetProjectbyIdQuery(projectId);
 
-  const {data , isLoading, error } = useGetProjectbyIdQuery(projectId);
- 
   // Set the current project directly from API response
   useEffect(() => {
     if (data) {
@@ -130,16 +137,15 @@ export default function TestPage() {
   }, [data]);
 
   useEffect(() => {
-    if(isTestcaseSuccess){
-       setShowBackdrop(true);
-       setTimeout(() => {
+    if (isTestcaseSuccess) {
+      setShowBackdrop(true);
+      setTimeout(() => {
         setShowBackdrop(false);
-       }, 3000);
+      }, 3000);
+    } else if (isTestcaseError && testcaseError) {
+      toast.error(testcaseError?.data?.error || "Failed to run testcase!");
     }
-    else if(isTestcaseError && testcaseError){
-      toast.error(testcaseError?.data?.error || "Failed to run testcase!")
-    }
-  },[isTestcaseError, isTestcaseSuccess])
+  }, [isTestcaseError, isTestcaseSuccess]);
 
   const handleAddTestCase = (project) => {
     setSelectedProject(project);
@@ -153,15 +159,20 @@ export default function TestPage() {
       const updatedTestcaseData = {
         project: selectedProject.id,
         name: testCaseName,
-        steps:[  ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
-        ...testSteps.map((step) => ({
-          action: step.action,
-          selector: step.field,
-          value: step.value || "",
-          ...(step.url && {url: step.url})
-        })),
-       ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
-        ]
+        steps: [
+          ...(stateOption === "use" && currentProject
+            ? [{ action: "use", value: `${currentProject.name}.json` }]
+            : []),
+          ...testSteps.map((step) => ({
+            action: step.action,
+            selector: step.field,
+            value: step.value || "",
+            ...(step.url && { url: step.url }),
+          })),
+          ...(stateOption === "save" && currentProject
+            ? [{ action: "save", value: `${currentProject.name}.json` }]
+            : []),
+        ],
       };
       await EditTestCase({
         id: testCase.id,
@@ -190,17 +201,16 @@ export default function TestPage() {
   };
 
   const handleDeleteTestcase = async (testCase) => {
-      try {
-        const response = await deleteTestCase(testCase?.id);
-        if(response){
-          toast.success("Testcase deleted successfully!");
-        }
+    try {
+      const response = await deleteTestCase(testCase?.id);
+      if (response) {
+        toast.success("Testcase deleted successfully!");
       }
-      catch(error) {
-        console.error("Failed to delete testcase:",error);
-        toast.error("Failed to delete testcase!");
-      }
-  }
+    } catch (error) {
+      console.error("Failed to delete testcase:", error);
+      toast.error("Failed to delete testcase!");
+    }
+  };
 
   const handleLastStep = () => {
     setTestSteps((prev) => [...prev, { action: "", field: "", value: "" }]);
@@ -208,14 +218,12 @@ export default function TestPage() {
 
   const handleAddStep = (index) => {
     setTestSteps((prev) => {
-      const newStep = {action : "", field : "", value : ""};
+      const newStep = { action: "", field: "", value: "" };
       const updated = [...prev];
       updated.splice(index + 1, 0, newStep);
       return updated;
-    })
-  }
-
-
+    });
+  };
 
   const handleRemoveStep = (index) => {
     setTestSteps((prev) => prev.filter((_, i) => i !== index));
@@ -259,20 +267,25 @@ export default function TestPage() {
       const data = {
         project: selectedProject.id,
         name: testCaseName,
-        steps:[  ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
-        ...testSteps.map((step) => ({
-          action: step.action,
-          selector: step.field,
-          value: step.value || "",
-          ...(step.url && {url: step.url})
-        })),
-       ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
-        ]
+        steps: [
+          ...(stateOption === "use" && currentProject
+            ? [{ action: "use", value: `${currentProject.name}.json` }]
+            : []),
+          ...testSteps.map((step) => ({
+            action: step.action,
+            selector: step.field,
+            value: step.value || "",
+            ...(step.url && { url: step.url }),
+          })),
+          ...(stateOption === "save" && currentProject
+            ? [{ action: "save", value: `${currentProject.name}.json` }]
+            : []),
+        ],
       };
-    
+
       await createTestCase(data).unwrap();
 
-      toast.success("Test case added successfully!")
+      toast.success("Test case added successfully!");
 
       // setSnackbar({
       //   open: true,
@@ -289,7 +302,7 @@ export default function TestPage() {
         message: "Failed to add test case",
         severity: "error",
       });
-      toast.error("Failed to save testcase!")
+      toast.error("Failed to save testcase!");
     }
   };
 
@@ -313,9 +326,9 @@ export default function TestPage() {
         navigate(`/results/${testCase.id}`);
       } else {
         // Store report path for this specific test case
-        setTestCaseReports(prev => ({
+        setTestCaseReports((prev) => ({
           ...prev,
-          [testCase.id]: response?.report
+          [testCase.id]: response?.report,
         }));
         // setSnackbar({
         //   open: true,
@@ -369,14 +382,18 @@ export default function TestPage() {
         project: selectedProject?.id,
         name: testCaseName,
         steps: [
-          ...(stateOption === "use" && currentProject ? [{ action:"use", value: `${currentProject.name}.json` }] : []),
+          ...(stateOption === "use" && currentProject
+            ? [{ action: "use", value: `${currentProject.name}.json` }]
+            : []),
           ...PlaywrightFormat,
-          ...(stateOption === "save" && currentProject ? [{action:"save", value: `${currentProject.name}.json` }] : []),
+          ...(stateOption === "save" && currentProject
+            ? [{ action: "save", value: `${currentProject.name}.json` }]
+            : []),
         ],
       };
       try {
         await createTestCase(payloadData).unwrap();
-        toast.success("Testcase added successfully!")
+        toast.success("Testcase added successfully!");
         setIsAddingTestCase(false);
         setIsAddingJson(false);
         setTestCaseName("");
@@ -384,11 +401,11 @@ export default function TestPage() {
         setStateOption(null);
       } catch (apiErr) {
         console.error("API error while creating test case:", apiErr);
-        toast.error("Failed to create testcase")
+        toast.error("Failed to create testcase");
       }
     } catch (err) {
       console.error("Failed to read or parse JSON file:", err);
-      toast.error("Failed to read json file")
+      toast.error("Failed to read json file");
     }
   };
 
@@ -411,7 +428,14 @@ export default function TestPage() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Loading project data...</Typography>
       </Box>
@@ -423,11 +447,12 @@ export default function TestPage() {
       <Box sx={{ flexGrow: 1 }}>
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
           <Alert severity="error">
-            Failed to load projects data. Error: {error?.message || 'Unknown error'}
+            Failed to load projects data. Error:{" "}
+            {error?.message || "Unknown error"}
           </Alert>
-          <Button 
-            startIcon={<ArrowBackIcon />} 
-            onClick={() => navigate('/projects')}
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/projects")}
             sx={{ mt: 2 }}
           >
             Back to Projects
@@ -444,9 +469,9 @@ export default function TestPage() {
           <Alert severity="warning">
             Project with ID "{projectId}" not found.
           </Alert>
-          <Button 
-            startIcon={<ArrowBackIcon />} 
-            onClick={() => navigate('/projects')}
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/projects")}
             sx={{ mt: 2 }}
           >
             Back to Projects
@@ -464,861 +489,941 @@ export default function TestPage() {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-          <Link 
-            underline="hover" 
-            color="inherit" 
-            onClick={() => navigate('/projects')}
-            sx={{ cursor: 'pointer' }}
-          >
-            Projects
-          </Link>
-          <Typography color="text.primary">{currentProject?.name}</Typography>
-        </Breadcrumbs>
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+        <Link
+          underline="hover"
+          color="inherit"
+          onClick={() => navigate("/projects")}
+          sx={{ cursor: "pointer" }}
+        >
+          Projects
+        </Link>
+        <Typography color="text.primary">{currentProject?.name}</Typography>
+      </Breadcrumbs>
 
-        {/* Project Header */}
-        <Card elevation={2} sx={{ mb: 4 }}>
-          <CardContent>
-            <Box className="flex flex-col space-y-2 md:space-y-0 md:flex-row " sx={{  justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-              <Box sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Button
-                    startIcon={<ArrowBackIcon />}
-                    onClick={() => navigate('/projects')}
-                    size="small"
-                    className="!rounded-full !border !p-0 md:!px-2"
-                    >
-                   { isMdscreen && "Back"}
-                  </Button>
-                  <Typography variant="h6" component="h1" gutterBottom sx={{ margin: 0 }}>
-                    {currentProject?.name}
-                  </Typography>
-                </Box>
-                
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {currentProject?.description}
+      {/* Project Header */}
+      <Card elevation={2} sx={{ mb: 4 }}>
+        <CardContent>
+          <Box
+            className="flex flex-col space-y-2 md:space-y-0 md:flex-row "
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              mb: 2,
+            }}
+          >
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+              >
+                <Button
+                  startIcon={<ArrowBackIcon />}
+                  onClick={() => navigate("/projects")}
+                  size="small"
+                  className="!rounded-full !border !p-0 md:!px-2"
+                >
+                  {isMdscreen && "Back"}
+                </Button>
+                <Typography
+                  variant="h6"
+                  component="h1"
+                  gutterBottom
+                  sx={{ margin: 0 }}
+                >
+                  {currentProject?.name}
                 </Typography>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LanguageIcon color="primary" />
-                    <Link 
-                      href={currentProject?.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      sx={{ textDecoration: 'none' }}
-                    >
-                      {currentProject?.url}
-                    </Link>
-                    <LaunchIcon sx={{ fontSize: 16 }} />
-                  </Box>
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip
-                    label={`${currentProject?.testcases?.length || 0} test cases`}
-                    size="small"
-                    color="primary"
-                    className="!bg-blue-200 !text-blue-500"
-                  />
-                  <Chip
-                    label={`Created: ${new Date(currentProject?.created_at).toLocaleDateString()}`}
-                    size="small"
-                    variant="outlined"
-                  />
+              </Box>
+
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                {currentProject?.description}
+              </Typography>
+
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <LanguageIcon color="primary" />
+                  <Link
+                    href={currentProject?.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ textDecoration: "none" }}
+                  >
+                    {currentProject?.url}
+                  </Link>
+                  <LaunchIcon sx={{ fontSize: 16 }} />
                 </Box>
               </Box>
-              
-              <Box sx={{ display: 'flex', gap: 2 }} className=" w-full md:w-auto justify-between">
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleAddTestCase(currentProject)}
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Chip
+                  label={`${currentProject?.testcases?.length || 0} test cases`}
                   size="small"
-                  className="!min-w-[120px] !bg-blue-700"
-                >
-                  {isMdscreen ? "Add Test Case" : "Add"}
-                </Button>
-                <Tooltip title="Upload JSON file">
-                  <Button
-                    variant="outlined"
-                    startIcon={<UploadFile />}
-                    onClick={() => {
-                      setTestCaseName("");
-                      setIsAddingJson(true);
-                      setSelectedProject(currentProject);
-                    }}
-                    size="small"
-                    className="!min-w-[120px]"
-                  >
-                    {isMdscreen ?  "Upload JSON" : "Upload"}
-                  </Button>
-                </Tooltip>
+                  color="primary"
+                  className="!bg-blue-200 !text-blue-500"
+                />
+                <Chip
+                  label={`Created: ${new Date(
+                    currentProject?.created_at
+                  ).toLocaleDateString()}`}
+                  size="small"
+                  variant="outlined"
+                />
               </Box>
             </Box>
-          </CardContent>
-        </Card>
 
-        <Divider sx={{ mb: 4 }} />
-
-        {/* Test Cases Section */}
-        <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
-          Test Cases ({currentProject?.testcases?.length || 0})
-        </Typography>
-
-        {currentProject?.testcases?.length === 0 ? (
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center', py: 6 }}>
-              <TestIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                No test cases yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Create your first test case to start automated testing for this project
-              </Typography>
+            <Box
+              sx={{ display: "flex", gap: 2 }}
+              className=" w-full md:w-auto justify-between"
+            >
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => handleAddTestCase(currentProject)}
-                size="large"
+                size="small"
+                className="!min-w-[120px] !bg-blue-700"
               >
-                Create First Test Case
+                {isMdscreen ? "Add Test Case" : "Add"}
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {currentProject?.testcases?.map((testCase) => (
-              <Box
-                key={testCase?.id}
-                sx={{ 
-                  width: '100%'
+              <Tooltip title="Upload JSON file">
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFile />}
+                  onClick={() => {
+                    setTestCaseName("");
+                    setIsAddingJson(true);
+                    setSelectedProject(currentProject);
+                  }}
+                  size="small"
+                  className="!min-w-[120px]"
+                >
+                  {isMdscreen ? "Upload JSON" : "Upload"}
+                </Button>
+              </Tooltip>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Divider sx={{ mb: 4 }} />
+
+      {/* Test Cases Section */}
+      <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
+        Test Cases ({currentProject?.testcases?.length || 0})
+      </Typography>
+
+      {currentProject?.testcases?.length === 0 ? (
+        <Card elevation={1}>
+          <CardContent sx={{ textAlign: "center", py: 6 }}>
+            <TestIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              No test cases yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Create your first test case to start automated testing for this
+              project
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleAddTestCase(currentProject)}
+              size="large"
+            >
+              Create First Test Case
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {currentProject?.testcases?.map((testCase) => (
+            <Box
+              key={testCase?.id}
+              sx={{
+                width: "100%",
+              }}
+            >
+              <Accordion
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  "&.MuiAccordion-root": {
+                    "&:before": {
+                      display: "none",
+                    },
+                  },
                 }}
               >
-                <Accordion 
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    '&.MuiAccordion-root': {
-                      '&:before': {
-                        display: 'none'
-                      }
-                    }
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{
+                    minHeight: 64,
+                    "&.Mui-expanded": {
+                      minHeight: 64,
+                    },
                   }}
                 >
-                  <AccordionSummary 
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{
-                      minHeight: 64,
-                      '&.Mui-expanded': {
-                        minHeight: 64
-                      }
-                    }}
-                  >
-                    <Box
+                  <Box
                     className="flex flex-col md:flex-row items-start justify-start md:justify-between"
+                    sx={{
+                      alignItems: "center",
+                      width: "100%",
+                      minHeight: 40,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Typography
+                      variant="h6"
+                      className=" w-full md:w-auto"
                       sx={{
-                       
-                        alignItems: "center",
-                        width: "100%",
-                        minHeight: 40
+                        flexGrow: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        pr: 1,
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      title={testCase?.name}
                     >
-                      <Typography 
-                        variant="h6" 
-                        className=" w-full md:w-auto"
-                        sx={{ 
-                          flexGrow: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          pr: 1
-                        }}
-                        title={testCase?.name}
-                      >
-                        {testCase?.name}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
-                        {testCaseReports[testCase.id] && !uploadedFile && (
-                          <Tooltip title="Download HTML Report">
-                            <IconButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadReport(testCase.id);
-                              }}
-                              color="primary"
-                            >
-                              <FileDownload />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        
-                        <Tooltip title="Upload CSV or Excel file">
-                          <Button
-                            variant="outlined"
-                            startIcon={<UploadFile />}
-                            onClick={() => fileInputRef.current?.click()}
-                            //className="rounded-full min-w-4 mx-auto md:rounded-md"
-                          >
-                           {isMdscreen && "Upload Data"}
-                            <input
-                              type="file"
-                              accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                              ref={fileInputRef}
-                              style={{ display: "none" }}
-                              onChange={handleExcelUpload}
-                            />
-                          </Button>
-                        </Tooltip>
-                        
-                        <Tooltip title="Edit Test Case">
+                      {testCase?.name}
+                    </Typography>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mr: 2,
+                      }}
+                    >
+                      {testCaseReports[testCase.id] && !uploadedFile && (
+                        <Tooltip title="Download HTML Report">
                           <IconButton
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedProject(currentProject);
-                              setSelectedTestCase(testCase);
-                              setTestCaseName(testCase.name);
-                              setTestSteps(
-                                testCase.steps.map((step) => ({
-                                  action: step.action || "",
-                                  field: step.action === "goto" ? (step.url || "") : (step.selector || ""),
-                                  value: step.value || "",
-                                  url: step.url || "", // Add URL field for goto actions
-                                }))
-                              );
-                              setIsEditingTestCase(true);
+                              handleDownloadReport(testCase.id);
                             }}
-                            className="rounded-full border"
+                            color="primary"
                           >
-                            <EditIcon />
-                          </IconButton>
-              
-                          <IconButton 
-                          onClick={() => handleDeleteTestcase(testCase)}
-                          color = "error">
-                             <DeleteIcon />
+                            <FileDownload />
                           </IconButton>
                         </Tooltip>
-                        
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          {testCase?.status === "passed" && (
-                            <CheckCircleIcon color="success" />
-                          )}
-                          {testCase?.status === "failed" && (
-                            <ErrorIcon color="error" />
-                          )}
-                          
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={
-                              runningTests.has(`${currentProject?.id}-${testCase?.id}`) ? (
-                                <CircularProgress size={16} color="inherit" />
-                              ) : (
-                                <PlayIcon />
-                              )
-                            }
-                            className="p-1 w-8 md:w-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRunTestCase(currentProject, testCase);
-                            }}
-                          >
-                            {isMdscreen && (runningTests.has(`${currentProject?.id}-${testCase?.id}`)
-                              ? "Running..."
-                              : "Run")}
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </AccordionSummary>
-                  
-                  <AccordionDetails 
-                    sx={{ 
-                      flexGrow: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      pt: 2
-                    }}
-                  >
-                    {uploadedFile && (
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        Uploaded File: {uploadedFile.name}
-                      </Alert>
-                    )}
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                      Test Steps ({testCase.steps.length}):
-                    </Typography>
-                    
-                    <Box sx={{ maxHeight: 300, overflowY: 'auto', mb: 2 }}>
-                      {testCase.steps.map((step, idx) => (
-                        <Box
-                          key={idx}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            minHeight: 60,
-                            gap: 1.5,
-                            mb: 1,
-                            p: 1.5,
-                            bgcolor: "grey.50",
-                            borderRadius: 1,
-                            border: '1px solid',
-                            borderColor: 'grey.200',
-                            '&:last-child': {
-                              mb: 0
-                            }
+                      )}
+
+                      <Tooltip title="Upload CSV or Excel file">
+                        <Button
+                          variant="outlined"
+                          startIcon={<UploadFile />}
+                          onClick={() => fileInputRef.current?.click()}
+                          //className="rounded-full min-w-4 mx-auto md:rounded-md"
+                        >
+                          {isMdscreen && "Upload Data"}
+                          <input
+                            type="file"
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            ref={fileInputRef}
+                            style={{ display: "none" }}
+                            onChange={handleExcelUpload}
+                          />
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Edit Test Case">
+                        <IconButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProject(currentProject);
+                            setSelectedTestCase(testCase);
+                            setTestCaseName(testCase.name);
+                            setTestSteps(
+                              testCase.steps.map((step) => ({
+                                action: step.action || "",
+                                field:
+                                  step.action === "goto"
+                                    ? step.url || ""
+                                    : step.selector || "",
+                                value: step.value || "",
+                                url: step.url || "", // Add URL field for goto actions
+                              }))
+                            );
+                            setIsEditingTestCase(true);
+                          }}
+                          className="rounded-full border"
+                        >
+                          <EditIcon />
+                        </IconButton>
+
+                        <IconButton
+                          onClick={() => handleDeleteTestcase(testCase)}
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        {testCase?.status === "passed" && (
+                          <CheckCircleIcon color="success" />
+                        )}
+                        {testCase?.status === "failed" && (
+                          <ErrorIcon color="error" />
+                        )}
+
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={
+                            runningTests.has(
+                              `${currentProject?.id}-${testCase?.id}`
+                            ) ? (
+                              <CircularProgress size={16} color="inherit" />
+                            ) : (
+                              <PlayIcon />
+                            )
+                          }
+                          className="p-1 w-8 md:w-auto"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRunTestCase(currentProject, testCase);
                           }}
                         >
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              minWidth: 30,
-                              minHeight: 30,
-                              color: "primary.main",
-                              fontWeight: "bold",
-                              textAlign: 'center',
-                              fontSize: '0.75rem'
-                            }}
-                          >
-                            {idx + 1}
-                          </Typography>
-                          
-                          <Chip
-                            label={step.action}
-                            size="small"
-                            color="primary"
-                            sx={{ 
-                              minWidth: 70,
-                              fontSize: '0.7rem',
-                              height: 30
-                            }}
-                          />
-                          
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontFamily: "monospace",
-                              bgcolor: "white",
-                              px: 1,
-                              py: 0.5,
-                              borderRadius: 0.5,
-                              border: '1px solid',
-                              borderColor: 'grey.300',
-                              flexGrow: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              fontSize: '0.7rem'
-                            }}
-                            title={step.selector || step.field}
-                          >
-                            {step.selector || step.field}
-                          </Typography>
-                          
-                          {step.value && (
-                            <Typography
-                              variant="caption"
-                              color="success.main"
-                              sx={{ 
-                                fontFamily: "monospace",
-                                fontWeight: 'medium',
-                                fontSize: '0.7rem',
-                                maxWidth: 100,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}
-                              title={step.value}
-                            >
-                              "{step.value}"
-                            </Typography>
-                          )}
-                        </Box>
-                      ))}
+                          {isMdscreen &&
+                            (runningTests.has(
+                              `${currentProject?.id}-${testCase?.id}`
+                            )
+                              ? "Running..."
+                              : "Run")}
+                        </Button>
+                      </Box>
                     </Box>
-                    
-                    {testCase.result && (
+                  </Box>
+                </AccordionSummary>
+
+                <AccordionDetails
+                  sx={{
+                    flexGrow: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    pt: 2,
+                  }}
+                >
+                  {uploadedFile && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      Uploaded File: {uploadedFile.name}
+                    </Alert>
+                  )}
+
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Test Steps ({testCase.steps.length}):
+                  </Typography>
+
+                  <Box sx={{ maxHeight: 300, overflowY: "auto", mb: 2 }}>
+                    {testCase.steps.map((step, idx) => (
                       <Box
+                        key={idx}
                         sx={{
-                          mt: 3,
-                          p: 2,
-                          bgcolor: testCase.status === "passed" ? "success.light" : "error.light",
+                          display: "flex",
+                          alignItems: "center",
+                          minHeight: 60,
+                          gap: 1.5,
+                          mb: 1,
+                          p: 1.5,
+                          bgcolor: "grey.50",
                           borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "grey.200",
+                          "&:last-child": {
+                            mb: 0,
+                          },
                         }}
                       >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                          <Typography variant="subtitle2" gutterBottom>
-                            Test Result:
-                          </Typography>
-                          {testCaseReports[testCase.id] && !uploadedFile && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<FileDownload />}
-                              onClick={() => handleDownloadReport(testCase.id)}
-                              sx={{ ml: 2 }}
-                            >
-                              Download Report
-                            </Button>
-                          )}
-                        </Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {testCase.result.message || "Test completed"}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            minWidth: 30,
+                            minHeight: 30,
+                            color: "primary.main",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {idx + 1}
                         </Typography>
-                        {testCase.lastRun && (
-                          <Typography variant="caption" color="text.secondary">
-                            Run at: {new Date(testCase.lastRun).toLocaleString()}
+
+                        <Chip
+                          label={step.action}
+                          size="small"
+                          color="primary"
+                          sx={{
+                            minWidth: 70,
+                            fontSize: "0.7rem",
+                            height: 30,
+                          }}
+                        />
+
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontFamily: "monospace",
+                            bgcolor: "white",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 0.5,
+                            border: "1px solid",
+                            borderColor: "grey.300",
+                            flexGrow: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontSize: "0.7rem",
+                          }}
+                          title={step.selector || step.field}
+                        >
+                          {step.selector || step.field}
+                        </Typography>
+
+                        {step.value && (
+                          <Typography
+                            variant="caption"
+                            color="success.main"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontWeight: "medium",
+                              fontSize: "0.7rem",
+                              maxWidth: 100,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={step.value}
+                          >
+                            "{step.value}"
                           </Typography>
                         )}
                       </Box>
-                    )}
-                  </AccordionDetails>
-                </Accordion>
-              </Box>
-            ))}
-          </Box>
-        )}
+                    ))}
+                  </Box>
 
-        {/* Add Test Case Dialog - Enhanced with Better Guidance */}
-        <Dialog
-          open={isAddingTestCase || isEditingTestCase}
-          onClose={() => {
-            setIsAddingTestCase(false);
-            setIsEditingTestCase(false);
-          }}
-          maxWidth="lg"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <CodeIcon color="primary" />
-              {isEditingTestCase ? "Edit Test Case" : "Add Test Case"} - {selectedProject?.url}
-            </Box>
-          </DialogTitle>
-          <form>
-            <DialogContent>
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Test Case Name"
-                fullWidth
-                variant="outlined"
-                value={testCaseName}
-                onChange={(e) => setTestCaseName(e.target.value)}
-                required
-                placeholder="e.g., User Login Flow Test"
-                sx={{ mb: 3 }}
-              />
-
-              <Typography variant="h6" gutterBottom>
-                Test Steps
-              </Typography>
-
-              {/* Improved Help Section */}
-              <Alert severity="info" sx={{ mb: 3 }}>
-                <Typography variant="body2">
-                  <strong>Selector Tips:</strong>
-                  <br />• Use specific selectors: <code>input[name="email"]</code>, <code>button[type="submit"]</code>
-                  <br />• For buttons with text: <code>button:has-text("Login")</code>
-                  <br />• Use IDs when available: <code>#login-btn</code>
-                  <br />• For your login form try: <code>input[name="email"]</code>, <code>input[name="password"]</code>, <code>button[type="submit"]</code>
-                </Typography>
-              </Alert>
-
-              {testSteps.map((step, index) => (
-                <Paper
-                  key={index}
-                  elevation={1}
-                  sx={{ p: 3, mb: 2, bgcolor: "grey.50" }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 2,
-                      mb: 2,
-                    }}
-                  >
-                    <Typography variant="h6" sx={{ minWidth: 80, mt: 1 }}>
-                      Step {index + 1}
-                    </Typography>
-                    <FormControl sx={{ minWidth: 200 }}>
-                      <InputLabel>Action *</InputLabel>
-                      <Select
-                        value={step.action}
-                        onChange={(e) =>
-                          handleStepChange(index, "action", e.target.value)
-                        }
-                        label="Action *"
-                        required
+                  {testCase.result && (
+                    <Box
+                      sx={{
+                        mt: 3,
+                        p: 2,
+                        bgcolor:
+                          testCase.status === "passed"
+                            ? "success.light"
+                            : "error.light",
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          mb: 1,
+                        }}
                       >
-                        {PLAYWRIGHT_ACTIONS.map((action) => (
-                          <MenuItem key={action.value} value={action.value}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <span>{action.icon}</span>
-                              <Box>
-                                <Typography variant="body2">
-                                  {action.label}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {action.description}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {step.action && (
-                        <FormHelperText>
-                          Example:{" "}
-                          {
-                            PLAYWRIGHT_ACTIONS.find(
-                              (a) => a.value === step.action
-                            )?.example
-                          }
-                        </FormHelperText>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Test Result:
+                        </Typography>
+                        {testCaseReports[testCase.id] && !uploadedFile && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<FileDownload />}
+                            onClick={() => handleDownloadReport(testCase.id)}
+                            sx={{ ml: 2 }}
+                          >
+                            Download Report
+                          </Button>
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {testCase.result.message || "Test completed"}
+                      </Typography>
+                      {testCase.lastRun && (
+                        <Typography variant="caption" color="text.secondary">
+                          Run at: {new Date(testCase.lastRun).toLocaleString()}
+                        </Typography>
                       )}
-                    </FormControl>
-                    <Box sx={{ display : "flex" , gap : 1}}>
-                     <IconButton
+                    </Box>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Add Test Case Dialog - Enhanced with Better Guidance */}
+      <Dialog
+        open={isAddingTestCase || isEditingTestCase}
+        onClose={() => {
+          setIsAddingTestCase(false);
+          setIsEditingTestCase(false);
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CodeIcon color="primary" />
+            {isEditingTestCase ? "Edit Test Case" : "Add Test Case"} -{" "}
+            {selectedProject?.url}
+          </Box>
+        </DialogTitle>
+        <form>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Test Case Name"
+              fullWidth
+              variant="outlined"
+              value={testCaseName}
+              onChange={(e) => setTestCaseName(e.target.value)}
+              required
+              placeholder="e.g., User Login Flow Test"
+              sx={{ mb: 3 }}
+            />
+
+            <Typography variant="h6" gutterBottom>
+              Test Steps
+            </Typography>
+
+            {/* Improved Help Section */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Selector Tips:</strong>
+                <br />• Use specific selectors: <code>input[name="email"]</code>
+                , <code>button[type="submit"]</code>
+                <br />• For buttons with text:{" "}
+                <code>button:has-text("Login")</code>
+                <br />• Use IDs when available: <code>#login-btn</code>
+                <br />• For your login form try:{" "}
+                <code>input[name="email"]</code>,{" "}
+                <code>input[name="password"]</code>,{" "}
+                <code>button[type="submit"]</code>
+              </Typography>
+            </Alert>
+
+            {testSteps.map((step, index) => (
+              <Paper
+                key={index}
+                elevation={1}
+                sx={{ p: 3, mb: 2, bgcolor: "grey.50" }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 2,
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ minWidth: 80, mt: 1 }}>
+                    Step {index + 1}
+                  </Typography>
+                  <FormControl sx={{ minWidth: 200 }}>
+                    <InputLabel>Action *</InputLabel>
+                    <Select
+                      value={step.action}
+                      onChange={(e) =>
+                        handleStepChange(index, "action", e.target.value)
+                      }
+                      label="Action *"
+                      required
+                    >
+                      {PLAYWRIGHT_ACTIONS.map((action) => (
+                        <MenuItem key={action.value} value={action.value}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <span>{action.icon}</span>
+                            <Box>
+                              <Typography variant="body2">
+                                {action.label}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {action.description}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {step.action && (
+                      <FormHelperText>
+                        Example:{" "}
+                        {
+                          PLAYWRIGHT_ACTIONS.find(
+                            (a) => a.value === step.action
+                          )?.example
+                        }
+                      </FormHelperText>
+                    )}
+                  </FormControl>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <IconButton
                       onClick={() => handleRemoveStep(index)}
                       disabled={testSteps?.length === 1}
                       color="error"
                     >
                       <DeleteIcon />
                     </IconButton>
-                     <Button
+                    <Button
                       startIcon={<AddIcon />}
                       onClick={() => handleAddStep(index)}
                     >
                       Add Step
                     </Button>
-                    </Box>
-                    
                   </Box>
+                </Box>
 
-                  <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                    {step.action !== "use" && step.action !== "save" && (
-                      <>
+                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                  {step.action !== "use" && step.action !== "save" && (
+                    <>
                       <TextField
-                      label={
-                        step.action === "goto"
-                          ? "URL *"
-                          : "Selector *"
-                      }
-                      value={step.action === "goto" ? (step.url || "") : (step.field || "")}
-                      onChange={(e) =>
-                        handleStepChange(index, step.action === "goto" ? "url" : "field", e.target.value)
-                      }
-                      sx={{ flexGrow: 1 }}
-                      required
-                      placeholder={getFieldPlaceholder(step.action)}
-                      helperText={
-                        step.action === "goto"
-                          ? "Full URL or path (e.g., /login)"
-                          : step.action === "click"
-                          ? 'Try: button[type="submit"], #login-btn'
-                          : step.action === "fill"
-                          ? 'Try: input[name="fieldname"], input[type="fieldname"]'
-                          : step.action === "wait"
-                          ? "Time in milliseconds (e.g., 2000 for 2 seconds)"
-                          : "CSS selector to target the element"
-                      }
-                    />
-                    {(step.action === "fill" ||
-                      step.action === "select" ||
-                      step.action === "expect_text" ||
-                      step.action === "wait") && (
-                      <TextField
-                        label={
-                          step.action === "expect_text"
-                            ? "Expected Text *"
-                            : "Value *"
+                        label={step.action === "goto" ? "URL *" : "Selector *"}
+                        value={
+                          step.action === "goto"
+                            ? step.url || ""
+                            : step.field || ""
                         }
-                        value={step.value}
                         onChange={(e) =>
-                          handleStepChange(index, "value", e.target.value)
+                          handleStepChange(
+                            index,
+                            step.action === "goto" ? "url" : "field",
+                            e.target.value
+                          )
                         }
-                        placeholder={
-                          step.action === "expect_text"
-                            ? "Text to verify"
+                        sx={{ flexGrow: 1 }}
+                        required
+                        placeholder={getFieldPlaceholder(step.action)}
+                        helperText={
+                          step.action === "goto"
+                            ? "Full URL or path (e.g., /login)"
+                            : step.action === "click"
+                            ? 'Try: button[type="submit"], #login-btn'
                             : step.action === "fill"
-                            ? "Text to enter"
-                            : "Option value"
-                        }
-                        sx={{ minWidth: 200 }}
-                        required={
-                          step.action === "fill" ||
-                          step.action === "expect_text"
+                            ? 'Try: input[name="fieldname"], input[type="fieldname"]'
+                            : step.action === "wait"
+                            ? "Time in milliseconds (e.g., 2000 for 2 seconds)"
+                            : "CSS selector to target the element"
                         }
                       />
-                    )}
-                      </>
-                    )}
-                    
+                      {(step.action === "fill" ||
+                        step.action === "select" ||
+                        step.action === "expect_text" ||
+                        step.action === "wait") && (
+                        <TextField
+                          label={
+                            step.action === "expect_text"
+                              ? "Expected Text *"
+                              : "Value *"
+                          }
+                          value={step.value}
+                          onChange={(e) =>
+                            handleStepChange(index, "value", e.target.value)
+                          }
+                          placeholder={
+                            step.action === "expect_text"
+                              ? "Text to verify"
+                              : step.action === "fill"
+                              ? "Text to enter"
+                              : "Option value"
+                          }
+                          sx={{ minWidth: 200 }}
+                          required={
+                            step.action === "fill" ||
+                            step.action === "expect_text"
+                          }
+                        />
+                      )}
+                    </>
+                  )}
+                </Box>
+
+                {/* Common selector suggestions */}
+                {step.action === "click" && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Common login button selectors:
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        mt: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {[
+                        'button[type="submit"]',
+                        "#login-btn",
+                        ".login-button",
+                        'button:has-text("Login")',
+                        'input[type="submit"]',
+                      ].map((selector) => (
+                        <Chip
+                          key={selector}
+                          label={selector}
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            handleStepChange(index, "field", selector)
+                          }
+                          sx={{ cursor: "pointer", fontSize: "0.75rem" }}
+                        />
+                      ))}
+                    </Box>
                   </Box>
+                )}
 
-                  {/* Common selector suggestions */}
-                  {step.action === "click" && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Common login button selectors:
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          mt: 1,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {[
-                          'button[type="submit"]',
-                          "#login-btn",
-                          ".login-button",
-                          'button:has-text("Login")',
-                          'input[type="submit"]',
-                        ].map((selector) => (
-                          <Chip
-                            key={selector}
-                            label={selector}
-                            size="small"
-                            variant="outlined"
-                            onClick={() =>
-                              handleStepChange(index, "field", selector)
-                            }
-                            sx={{ cursor: "pointer", fontSize: "0.75rem" }}
-                          />
-                        ))}
-                      </Box>
+                {step.action === "fill" && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Common input selectors:
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        mt: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {[
+                        'input[name="fieldname"]',
+                        'input[type="fieldname"]',
+                        "#fieldname",
+                      ].map((selector) => (
+                        <Chip
+                          key={selector}
+                          label={selector}
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            handleStepChange(index, "field", selector)
+                          }
+                          sx={{ cursor: "pointer", fontSize: "0.75rem" }}
+                        />
+                      ))}
                     </Box>
-                  )}
-
-                  {step.action === "fill" && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Common input selectors:
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          mt: 1,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {[
-                          'input[name="fieldname"]',
-                          'input[type="fieldname"]',
-                          "#fieldname",
-                        ].map((selector) => (
-                          <Chip
-                            key={selector}
-                            label={selector}
-                            size="small"
-                            variant="outlined"
-                            onClick={() =>
-                              handleStepChange(index, "field", selector)
-                            }
-                            sx={{ cursor: "pointer", fontSize: "0.75rem" }}
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                </Paper>
-              ))}
-              <RadioGroup
-          value={stateOption}
-          onChange={(e) => setStateOption(e.target.value)}
-        >
-          <FormControlLabel value="null" control={<Radio />} 
-          label={
-            <Tooltip title="Start each test with a login flow" placement="right">
-              <span>
-                Login Fresh
-              </span>
-            </Tooltip>
-            }/>
-          <FormControlLabel value="save" control={<Radio />} label=
-          {
-            <Tooltip title="Remember Login info for future test" placement="right">
-              <span>
-                 Remember Login 
-              </span>
-            </Tooltip>
-          }
-          />
-          <FormControlLabel value="use" control={<Radio />} label=
-          {
-            <Tooltip title="Use previously saved login info" placement="right">
-              <span>
-                Use Saved Login
-              </span>
-            </Tooltip>
-          }
-          
-          />
-        </RadioGroup>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={handleLastStep}
-                variant="outlined"
-                sx={{ mt: 2 }}
-              >
-                Add Step
-              </Button>
-            </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
-              <Button
-                onClick={() => {
-                  setIsAddingTestCase(false);
-                  setIsEditingTestCase(false);
-                  setTestCaseName("");
-                }}
-                color="inherit"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={<CodeIcon />}
-                onClick={() => {
-                  if (isAddingTestCase) {
-                    handleSaveTestCase();
-                  } else if (isEditingTestCase) {
-                    handleEditTestCase(selectedTestCase);
-                  }
-                }}
-              >
-                {isEditingTestCase ? "Update Test Case" : "Save Test Case"}
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-
-        {/* Upload JSON Dialog */}
-        <Dialog
-          open={isAddingJson}
-          onClose={() => setIsAddingJson(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <AddIcon color="primary" />
-              Add New Testcase
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <TextField
-              margin="dense"
-              label="Testcase Name"
-              multiline
-              rows={1}
-              fullWidth
-              variant="outlined"
-              value={testCaseName}
-              onChange={(e) => setTestCaseName(e.target.value)}
-              required
-              placeholder="Enter Testcase Title"
-              sx={{ mb: 2 }}
-            />
-            <Button
-              variant="contained"
-              component="label"
-              sx={{ mt: 2 }}
-            >
-              Select JSON File
-              <input
-                type="file"
-                accept=".json"
-                hidden
-                onChange={handleFileSelect}
-              />
-            </Button>
-            {selectedFile && (
-              <Typography sx={{ mt: 1 }}>
-                Selected file: {selectedFile.name}
-              </Typography>
-            )}
-            
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Browser State Options:
-              </Typography>
+                  </Box>
+                )}
+              </Paper>
+            ))}
+            {!isEditingTestCase && (
               <RadioGroup
                 value={stateOption}
                 onChange={(e) => setStateOption(e.target.value)}
-                sx={{ ml: 1 }}
               >
-                <FormControlLabel 
-                  value="null" 
-                  control={<Radio />} 
+                <FormControlLabel
+                  value="null"
+                  control={<Radio />}
                   label={
-                    <Tooltip title="Start each test with a login flow" placement="right">
+                    <Tooltip
+                      title="Start each test with a login flow"
+                      placement="right"
+                    >
                       <span>Login Fresh</span>
                     </Tooltip>
-                    }
+                  }
                 />
-                <FormControlLabel 
-                  value="save" 
-                  control={<Radio />} 
+                <FormControlLabel
+                  value="save"
+                  control={<Radio />}
                   label={
-                    <Tooltip title="Remember Login info for future test" placement="right">
-                     <span>Remember Login</span>
+                    <Tooltip
+                      title="Remember Login info for future test"
+                      placement="right"
+                    >
+                      <span>Remember Login</span>
                     </Tooltip>
-                     }
+                  }
                 />
-                <FormControlLabel 
-                  value="use" 
-                  control={<Radio />} 
+                <FormControlLabel
+                  value="use"
+                  control={<Radio />}
                   label={
-                  <Tooltip title="Use previously saved login info" placement="right">
-                    <span>Use Saved Login</span>
-                  </Tooltip>
+                    <Tooltip
+                      title="Use previously saved login info"
+                      placement="right"
+                    >
+                      <span>Use Saved Login</span>
+                    </Tooltip>
                   }
                 />
               </RadioGroup>
-            </Box>
+            )}
+
+            <Button
+              startIcon={<AddIcon />}
+              onClick={handleLastStep}
+              variant="outlined"
+              sx={{ mt: 2 }}
+            >
+              Add Step
+            </Button>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setIsAddingJson(false);
-              setStateOption(null);
-              setSelectedFile(null);
-              setTestCaseName("");
-            }}>
+          <DialogActions sx={{ p: 3 }}>
+            <Button
+              onClick={() => {
+                setIsAddingTestCase(false);
+                setIsEditingTestCase(false);
+                setTestCaseName("");
+              }}
+              color="inherit"
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
+              startIcon={<CodeIcon />}
               onClick={() => {
-                setIsAddingJson(true);
-                handleUploadFile(selectedProject, testCaseName);
+                if (isAddingTestCase) {
+                  handleSaveTestCase();
+                } else if (isEditingTestCase) {
+                  handleEditTestCase(selectedTestCase);
+                }
               }}
             >
-              {"Save Test Case"}
+              {isEditingTestCase ? "Update Test Case" : "Save Test Case"}
             </Button>
           </DialogActions>
-        </Dialog>
+        </form>
+      </Dialog>
+
+      {/* Upload JSON Dialog */}
+      <Dialog
+        open={isAddingJson}
+        onClose={() => setIsAddingJson(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <AddIcon color="primary" />
+            Add New Testcase
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Testcase Name"
+            multiline
+            rows={1}
+            fullWidth
+            variant="outlined"
+            value={testCaseName}
+            onChange={(e) => setTestCaseName(e.target.value)}
+            required
+            placeholder="Enter Testcase Title"
+            sx={{ mb: 2 }}
+          />
+          <Button variant="contained" component="label" sx={{ mt: 2 }}>
+            Select JSON File
+            <input
+              type="file"
+              accept=".json"
+              hidden
+              onChange={handleFileSelect}
+            />
+          </Button>
+          {selectedFile && (
+            <Typography sx={{ mt: 1 }}>
+              Selected file: {selectedFile.name}
+            </Typography>
+          )}
+
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Browser State Options:
+            </Typography>
+            <RadioGroup
+              value={stateOption}
+              onChange={(e) => setStateOption(e.target.value)}
+              sx={{ ml: 1 }}
+            >
+              <FormControlLabel
+                value="null"
+                control={<Radio />}
+                label={
+                  <Tooltip
+                    title="Start each test with a login flow"
+                    placement="right"
+                  >
+                    <span>Login Fresh</span>
+                  </Tooltip>
+                }
+              />
+              <FormControlLabel
+                value="save"
+                control={<Radio />}
+                label={
+                  <Tooltip
+                    title="Remember Login info for future test"
+                    placement="right"
+                  >
+                    <span>Remember Login</span>
+                  </Tooltip>
+                }
+              />
+              <FormControlLabel
+                value="use"
+                control={<Radio />}
+                label={
+                  <Tooltip
+                    title="Use previously saved login info"
+                    placement="right"
+                  >
+                    <span>Use Saved Login</span>
+                  </Tooltip>
+                }
+              />
+            </RadioGroup>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setIsAddingJson(false);
+              setStateOption(null);
+              setSelectedFile(null);
+              setTestCaseName("");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            onClick={() => {
+              setIsAddingJson(true);
+              handleUploadFile(selectedProject, testCaseName);
+            }}
+          >
+            {"Save Test Case"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar
@@ -1332,7 +1437,10 @@ export default function TestPage() {
         </Alert>
       </Snackbar>
 
-      <SuccessGradientMessage message="Testcase run completed successfully!" isBackdropOpen={showBackdrop}/>
+      <SuccessGradientMessage
+        message="Testcase run completed successfully!"
+        isBackdropOpen={showBackdrop}
+      />
     </Box>
   );
 }

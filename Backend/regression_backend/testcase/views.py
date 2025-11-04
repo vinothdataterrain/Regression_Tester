@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from .models import Team
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult
+from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult, TestRunReport
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -38,6 +38,14 @@ def log_test_action(user, test_name, status, project_name=None, info=None):
         project=project_name or "",
         status=status,
         additional_info=info or {}
+    )
+
+def save_test_report(project, testcase, report_path, status):
+    TestRunReport.objects.create(
+        project=project,
+        testcase=testcase,
+        report=report_path,
+        status=status
     )
 
 class AddTeamMemberView(APIView):
@@ -202,6 +210,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             results = loop.run_until_complete(run_testcase_async(steps, values=None, name=testcase.name))
             report_path = generate_html_report(testcase.id, results)
             project = testcase.project
+            save_test_report(project=project, testcase=testcase, report_path=report_path, status="completed")
             log_test_action(user=request.user, test_name=testcase.name, status="completed", project_name=project.name, info={"testcase_id": testcase.id, "report": report_path, "project":project.name})
             return Response({
                 "testcase_id": testcase.id,
@@ -252,6 +261,29 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 })
 
         return Response(data)
+  
+    @action(detail=False, methods=["get"], url_path="reports")
+    def testcase_report(self,request):
+        user = request.user
+        team = Team.objects.filter(members=user).first()
+        if not team:
+            return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
+        projects = Project.objects.filter(team=team)
+        testcases = TestCase.objects.filter(project__in=projects)
+        data = []
+        for testcase in testcases:
+            latest_report = TestRunReport.objects.filter(testcase=testcase).order_by("-created_at").first()
+            if latest_report:
+                data.append({
+                    "testcase_id": testcase.id,
+                    "name":testcase.name,
+                    "project": testcase.project.name,
+                    "status": latest_report.status,
+                    "report": latest_report.report.url if latest_report.report else None,
+                    "created_at": latest_report.created_at,
+                })
+
+        return Response(data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         testcase = self.get_object()

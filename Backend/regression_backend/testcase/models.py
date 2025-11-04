@@ -81,6 +81,19 @@ class TestRun(models.Model):
 
     def __str__(self):
         return f"Run {self.id} for {self.testcase.name}"
+
+class TestRunReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid1, editable=False)
+    project = models.ForeignKey("Project", on_delete=models.CASCADE)
+    testcase = models.ForeignKey("TestCase", on_delete=models.CASCADE)
+    report = models.FileField(upload_to="reports/", null=True, blank=True)
+    status = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report {self.id} for {self.testcase.name}"
+
+
     
 class ScriptProject(models.Model):
     name = models.CharField(max_length=200)

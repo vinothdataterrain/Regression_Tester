@@ -77,6 +77,9 @@ export const ProjectFeed = api.injectEndpoints({
     getAllTaskStatus: builder.query({
       query: ()=> `/testcases/all-task-status/`
     }),
+    getAllReports: builder.query({
+   query: () => `/testcases/reports/`
+    }),
     runTestCase: builder.mutation({
       query: ({ id, file }) => ({
         url: `/testcases/${id}/run/`,
@@ -114,6 +117,7 @@ export const {
   useGetAllTaskStatusQuery,
   useGetProjectsQuery,
   useGetTaskStatusQuery,
+  useGetAllReportsQuery,
   useCreateTestCaseMutation,
   useRunTestCaseMutation,
   useEditTestCaseMutation,
