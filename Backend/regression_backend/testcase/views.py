@@ -3,11 +3,11 @@ from rest_framework.views import APIView
 from .models import Team
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult, TestRunReport
+from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult, TestRunReport, Group
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer
+from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer, GroupSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.db.models import Count, Avg
@@ -151,6 +151,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "count": queryset.count(),
             "results": serializer.data
         })
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            return self.queryset.filter(project_id=project_id)
+        return self.queryset
+    
     
 class SummaryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -291,6 +302,51 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         return Response({ "message": "Testcase deleted successfully"},
         status=status.HTTP_200_OK
     )
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+    @action(detail=True, methods=["post"], url_path="run")
+    def run_group(self, request, pk=None):
+        try:
+            group = self.get_object()
+            testcases = group.testcases.all()
+
+            if not testcases.exists():
+                return Response({"detail": "No testcases under this group."}, status=status.HTTP_404_NOT_FOUND)
+
+            results = []
+            for testcase in testcases:
+                import asyncio
+                # get all steps
+                steps = list(testcase.steps.all().values())
+                
+                # Create new asyncio loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                # Run each testcase
+                res = loop.run_until_complete(run_testcase_async(steps))
+                report_path = generate_html_report(testcase.id, res)
+                results.append({
+                    "testcase_id": testcase.id,
+                    "testcase_name": testcase.name,
+                    "result": res,
+                    "report": report_path,
+                })
+                loop.close()
+
+            return Response({
+                "group_id": group.id,
+                "group_name": group.name,
+                "total_testcases": len(results),
+                "results": results
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class UserTeamsView(APIView):
     permission_classes = [IsAuthenticated]

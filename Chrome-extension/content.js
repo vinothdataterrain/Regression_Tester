@@ -691,7 +691,7 @@ if (reactSelectControl) {
       }
     }
   }
-});
+}, true);
 
 // Listen for input events (fires when typing)
 document.addEventListener("input", (e) => {

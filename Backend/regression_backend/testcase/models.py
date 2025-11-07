@@ -45,9 +45,15 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+class Group(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="groups")
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+
 
 class TestCase(models.Model):
     project = models.ForeignKey(Project, related_name="testcases", on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name="testcases")
     name = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):

@@ -1,6 +1,6 @@
 import { TestCache } from "@mui/x-data-grid/internals";
 import { api, rtkQueryServiceTags } from "./api";
-const { TEST_CASE, PROJECT } = rtkQueryServiceTags;
+const { TEST_CASE, PROJECT, GROUP } = rtkQueryServiceTags;
 
 export const ProjectFeed = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -14,12 +14,12 @@ export const ProjectFeed = api.injectEndpoints({
     }),
 
     updateProject: builder.mutation({
-      query: ({id, data}) => ({
+      query: ({ id, data }) => ({
         url: `/projects/${id}/`,
         method: "PUT",
         body: data,
       }),
-      invalidatesTags : [PROJECT],
+      invalidatesTags: [PROJECT],
     }),
 
     getProjects: builder.query({
@@ -27,15 +27,15 @@ export const ProjectFeed = api.injectEndpoints({
         url: "/projects/",
         method: "GET",
       }),
-      providesTags : [PROJECT],
+      providesTags: [PROJECT],
     }),
 
     getProjectbyId: builder.query({
-     query: (id) => ({
-      url: `/projects/${id}/`,
-      method: "GET",
-     }),
-     providesTags : [TEST_CASE]
+      query: (id) => ({
+        url: `/projects/${id}/`,
+        method: "GET",
+      }),
+      providesTags: [TEST_CASE, GROUP],
     }),
     createProgram: builder.mutation({
       query: (data) => ({
@@ -45,13 +45,38 @@ export const ProjectFeed = api.injectEndpoints({
       }),
     }),
 
+    createGroup: builder.mutation({
+      query: (data) => ({
+        url: `/groups/`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags : [GROUP],
+    }),
+
+    getGroups: builder.query({
+      query: (id) => ({
+        url: `/groups/`,
+        method: "GET",
+        params : {project : id},
+      }),
+      providesTags : [GROUP],
+    }),
+
+    runGroup: builder.mutation({
+        query: ({id}) => ({
+          url: `/groups/${id}/run/`,
+          method: "POST",
+        })
+    }),
+
     createTestCase: builder.mutation({
       query: (data) => ({
         url: `/testcases/`,
         method: "POST",
         body: data,
       }),
-      invalidatesTags: [TEST_CASE],
+      invalidatesTags: [TEST_CASE, GROUP],
     }),
 
     editTestCase: builder.mutation({
@@ -60,25 +85,25 @@ export const ProjectFeed = api.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: [TEST_CASE],
+      invalidatesTags: [TEST_CASE, GROUP],
     }),
 
-    deleteTestCase : builder.mutation({
-      query:(id) => ({
-        url : `/testcases/${id}/`,
-        method : "DELETE",
+    deleteTestCase: builder.mutation({
+      query: (id) => ({
+        url: `/testcases/${id}/`,
+        method: "DELETE",
       }),
-      invalidatesTags : [TEST_CASE],
+      invalidatesTags: [TEST_CASE, GROUP],
     }),
 
     getTaskStatus: builder.query({
-      query: (id)=> `/testcases/${id}/task-status/`
+      query: (id) => `/testcases/${id}/task-status/`,
     }),
     getAllTaskStatus: builder.query({
-      query: ()=> `/testcases/all-task-status/`
+      query: () => `/testcases/all-task-status/`,
     }),
     getAllReports: builder.query({
-   query: () => `/testcases/reports/`
+      query: () => `/testcases/reports/`,
     }),
     runTestCase: builder.mutation({
       query: ({ id, file }) => ({
@@ -98,22 +123,25 @@ export const ProjectFeed = api.injectEndpoints({
       query: () => ({
         url: "/summary",
         method: "GET",
-      })
+      }),
     }),
 
-    runPythonScripts : builder.mutation({
-      query: ( data ) => ({
-          url: "/run-python-scripts",
-          method: "POST",
-          body: data,
-      })
-    })
+    runPythonScripts: builder.mutation({
+      query: (data) => ({
+        url: "/run-python-scripts",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
 export const {
   useCreateProgramMutation,
   useCreateProjectMutation,
+  useCreateGroupMutation,
+  useGetGroupsQuery,
+  useRunGroupMutation,
   useGetAllTaskStatusQuery,
   useGetProjectsQuery,
   useGetTaskStatusQuery,
@@ -125,5 +153,5 @@ export const {
   useGetSummaryQuery,
   useRunPythonScriptsMutation,
   useUpdateProjectMutation,
-  useGetProjectbyIdQuery
+  useGetProjectbyIdQuery,
 } = ProjectFeed;

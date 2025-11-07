@@ -11,9 +11,10 @@ export const rtkQueryServiceTags = {
   USER: "User",
   ADD_MEMBER: "AddMemeber",
   TEAM_MEMBERS: "TeamMembers",
+  GROUP: "Group",
 };
 
-const { LOGIN, PROJECT, TEST_CASE, TEST_RESULT, USER, ADD_MEMBER, TEAM_MEMBERS } = rtkQueryServiceTags;
+const { LOGIN, PROJECT, TEST_CASE, TEST_RESULT, USER, ADD_MEMBER, TEAM_MEMBERS, GROUP } = rtkQueryServiceTags;
 
 export const api = createApi({
   reducerPath: "api",
@@ -27,7 +28,7 @@ export const api = createApi({
       return headers;
     }
   }),
-  tagTypes: [LOGIN, PROJECT, TEST_CASE, TEST_RESULT, USER, ADD_MEMBER, TEAM_MEMBERS],
+  tagTypes: [LOGIN, PROJECT, TEST_CASE, TEST_RESULT, USER, ADD_MEMBER, TEAM_MEMBERS, GROUP],
   endpoints: () => ({}),
 });
 

@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import {
   Typography,
   Box,
@@ -59,13 +63,20 @@ import {
   FileDownload,
   ArrowBack as ArrowBackIcon,
   Launch as LaunchIcon,
+  ChevronRight,
+  Description,
+  ExpandMore,
+  PlayArrow,
+  List,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
   useCreateTestCaseMutation,
   useDeleteTestCaseMutation,
   useEditTestCaseMutation,
+  useGetGroupsQuery,
   useGetProjectbyIdQuery,
+  useRunGroupMutation,
   useRunTestCaseMutation,
 } from "../services/runTestCases.api.services";
 import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
@@ -78,6 +89,9 @@ import {
 } from "../utils/constant";
 import { useNavigate, useParams } from "react-router-dom";
 import SuccessGradientMessage from "../components/successPopup";
+
+import { SelectBox } from "../components/common/selectBox";
+import Group from "../components/module/addGroup";
 
 export default function TestPage() {
   const navigate = useNavigate();
@@ -102,6 +116,11 @@ export default function TestPage() {
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
   const [testCaseReports, setTestCaseReports] = useState({});
+  //group states
+  const [group, setGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  console.log("group", group);
 
   const { success } = useToast();
   const [showBackdrop, setShowBackdrop] = useState(false);
@@ -126,7 +145,23 @@ export default function TestPage() {
   ] = useRunTestCaseMutation();
   const [deleteTestCase] = useDeleteTestCaseMutation();
 
+  const [
+    groupRun,
+    {
+      isSuccess: isGroupRunSuccess,
+      isError: isGroupRunError,
+      error: groupRunError,
+      isLoading: isGroupRunLoading,
+    },
+  ] = useRunGroupMutation();
+
   const { data, isLoading, error } = useGetProjectbyIdQuery(projectId);
+
+  const { data: groupData } = useGetGroupsQuery(currentProject?.id, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const GroupList = groupData?.map((e) => ({ label: e.name, value: e.id }));
 
   // Set the current project directly from API response
   useEffect(() => {
@@ -146,12 +181,39 @@ export default function TestPage() {
       toast.error(testcaseError?.data?.error || "Failed to run testcase!");
     }
   }, [isTestcaseError, isTestcaseSuccess]);
-
+  useEffect(() => {
+    if (isGroupRunSuccess) {
+      toast.success("Module Testcase Run Successfully!");
+    } else if (isGroupRunError && groupRunError) {
+      toast.error(groupRunError?.error || "Failed to run module!");
+    }
+  }, [isGroupRunSuccess, isGroupRunError]);
   const handleAddTestCase = (project) => {
     setSelectedProject(project);
     setIsAddingTestCase(true);
     setTestCaseName("");
     setTestSteps([{ action: "", field: "", value: "" }]);
+  };
+
+  const toggleGroup = (groupId) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const getActionColor = (action) => {
+    const colors = {
+      use: "bg-purple-100 text-purple-700",
+      goto: "bg-blue-100 text-blue-700",
+      click: "bg-green-100 text-green-700",
+      fill: "bg-orange-100 text-orange-700",
+      check: "bg-pink-100 text-pink-700",
+    };
+    return colors[action] || "bg-gray-100 text-gray-700";
   };
 
   const handleEditTestCase = async (testCase) => {
@@ -267,6 +329,7 @@ export default function TestPage() {
       const data = {
         project: selectedProject.id,
         name: testCaseName,
+        ...(selectedGroup && { group: selectedGroup }),
         steps: [
           ...(stateOption === "use" && currentProject
             ? [{ action: "use", value: `${currentProject.name}.json` }]
@@ -350,6 +413,14 @@ export default function TestPage() {
     }
   };
 
+  const handleGroupRun = async (groupId) => {
+    try {
+      await groupRun({ id: groupId });
+    } catch (error) {
+      console.error("error:", error);
+    }
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) setSelectedFile(file);
@@ -381,6 +452,7 @@ export default function TestPage() {
       const payloadData = {
         project: selectedProject?.id,
         name: testCaseName,
+        ...(selectedGroup && { group: selectedGroup }),
         steps: [
           ...(stateOption === "use" && currentProject
             ? [{ action: "use", value: `${currentProject.name}.json` }]
@@ -490,17 +562,21 @@ export default function TestPage() {
         <CircularProgress color="inherit" />
       </Backdrop>
       {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          onClick={() => navigate("/projects")}
-          sx={{ cursor: "pointer" }}
-        >
-          Projects
-        </Link>
-        <Typography color="text.primary">{currentProject?.name}</Typography>
-      </Breadcrumbs>
+      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+          <Link
+            underline="hover"
+            color="inherit"
+            onClick={() => navigate("/projects")}
+            sx={{ cursor: "pointer" }}
+          >
+            Projects
+          </Link>
+          <Typography color="text.primary">{currentProject?.name}</Typography>
+        </Breadcrumbs>
+
+        <Group currentProject={currentProject} />
+      </Box>
 
       {/* Project Header */}
       <Card elevation={2} sx={{ mb: 4 }}>
@@ -610,10 +686,10 @@ export default function TestPage() {
 
       {/* Test Cases Section */}
       <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
-        Test Cases ({currentProject?.testcases?.length || 0})
+        Modules ({currentProject?.groups?.length || 0})
       </Typography>
 
-      {currentProject?.testcases?.length === 0 ? (
+      {/* {currentProject?.testcases?.length === 0 ? (
         <Card elevation={1}>
           <CardContent sx={{ textAlign: "center", py: 6 }}>
             <TestIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
@@ -961,7 +1037,299 @@ export default function TestPage() {
             </Box>
           ))}
         </Box>
-      )}
+      )} */}
+
+      <Box>
+        <div className="grid gap-6">
+          {groupData.map((group) => (
+            <div
+              key={group.id}
+              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+              onClick={() => setGroup(group)}
+            >
+              {/* Group Header */}
+              <div
+                onClick={() => toggleGroup(group.id)}
+                className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="mt-1">
+                      {expandedGroups.has(group.id) ? (
+                        <ExpandMore className="w-5 h-5 text-slate-600" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-slate-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h2 className="text-xl font-semibold text-slate-800">
+                              {group.name}
+                            </h2>
+                            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-sm rounded-full">
+                              ID: {group.id}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 mb-3">
+                            {group.description}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <List className="w-4 h-4 text-slate-500" />
+                            <span className="text-slate-600">
+                              {group.testcases.length} test case
+                              {group.testcases.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<PlayIcon />}
+                            className="p-1 w-8 md:w-auto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGroupRun(group?.id);
+                            }}
+                          >
+                            {"Run"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test Cases */}
+              {expandedGroups.has(group.id) && (
+                <div className="border-t border-slate-200 bg-slate-50">
+                  {group.testcases.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                      <p>No test cases in this group</p>
+                    </div>
+                  ) : (
+                    <div className="p-6 space-y-4">
+                      {group.testcases.map((testcase) => (
+                        <div
+                          key={testcase.id}
+                          className="bg-white rounded-lg border border-slate-200 overflow-hidden"
+                        >
+                          {/* Test Case Header */}
+                          <div
+                            onClick={() =>
+                              setSelectedTestCase(
+                                selectedTestCase === testcase.id
+                                  ? null
+                                  : testcase.id
+                              )
+                            }
+                            className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <PlayArrow className="w-5 h-5 text-emerald-600" />
+                                <div>
+                                  <h3 className="font-semibold text-slate-800">
+                                    {testcase.name}
+                                  </h3>
+                                  <p className="text-sm text-slate-500">
+                                    {testcase.steps.length} steps • Created{" "}
+                                    {new Date(
+                                      testcase.created_at
+                                    ).toLocaleDateString()}
+                                  </p>
+
+                                  <Box>
+                                    {testCaseReports[testcase.id] &&
+                                      !uploadedFile && (
+                                        <Tooltip title="Download HTML Report">
+                                          <IconButton
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDownloadReport(testcase.id);
+                                            }}
+                                            color="primary"
+                                          >
+                                            <FileDownload />
+                                          </IconButton>
+                                        </Tooltip>
+                                      )}
+                                    <Tooltip title="Upload CSV or Excel file">
+                                      <Button
+                                        variant="outlined"
+                                        startIcon={<UploadFile />}
+                                        onClick={() =>
+                                          fileInputRef.current?.click()
+                                        }
+                                        //className="rounded-full min-w-4 mx-auto md:rounded-md"
+                                      >
+                                        {isMdscreen && "Upload Data"}
+                                        <input
+                                          type="file"
+                                          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                          ref={fileInputRef}
+                                          style={{ display: "none" }}
+                                          onChange={handleExcelUpload}
+                                        />
+                                      </Button>
+                                    </Tooltip>
+                                    <Tooltip title="Edit Test Case">
+                                      <IconButton
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedProject(currentProject);
+                                          setSelectedTestCase(testcase);
+                                          setTestCaseName(testcase.name);
+                                          setTestSteps(
+                                            testcase.steps.map((step) => ({
+                                              action: step.action || "",
+                                              field:
+                                                step.action === "goto"
+                                                  ? step.url || ""
+                                                  : step.selector || "",
+                                              value: step.value || "",
+                                              url: step.url || "", // Add URL field for goto actions
+                                            }))
+                                          );
+                                          setIsEditingTestCase(true);
+                                        }}
+                                        className="rounded-full border"
+                                      >
+                                        <EditIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Delete Test Case">
+                                      <IconButton
+                                        onClick={() =>
+                                          handleDeleteTestcase(testcase)
+                                        }
+                                        color="error"
+                                      >
+                                        <DeleteIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      startIcon={
+                                        runningTests.has(
+                                          `${currentProject?.id}-${testcase?.id}`
+                                        ) ? (
+                                          <CircularProgress
+                                            size={16}
+                                            color="inherit"
+                                          />
+                                        ) : (
+                                          <PlayIcon />
+                                        )
+                                      }
+                                      className="p-1 w-8 md:w-auto"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRunTestCase(
+                                          currentProject,
+                                          testcase
+                                        );
+                                      }}
+                                    >
+                                      {isMdscreen &&
+                                        (runningTests.has(
+                                          `${currentProject?.id}-${testcase?.id}`
+                                        )
+                                          ? "Running..."
+                                          : "Run")}
+                                    </Button>
+                                  </Box>
+                                </div>
+                              </div>
+                              {selectedTestCase === testcase.id ? (
+                                <ExpandMore className="w-5 h-5 text-slate-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-slate-600" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Test Steps */}
+                          {selectedTestCase === testcase.id && (
+                            <div className="border-t border-slate-200 bg-slate-50 p-4">
+                              <div className="space-y-3">
+                                {testcase.steps.map((step) => (
+                                  <div
+                                    key={step.step_number}
+                                    className="bg-white rounded-lg p-4 border border-slate-200"
+                                  >
+                                    <div className="flex items-start gap-4">
+                                      <div className="flex-shrink-0 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                        {step.step_number}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span
+                                            className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(
+                                              step.action
+                                            )}`}
+                                          >
+                                            {step.action.toUpperCase()}
+                                          </span>
+                                        </div>
+                                        {step.selector && (
+                                          <div className="mb-2">
+                                            <span className="text-xs text-slate-500 font-medium">
+                                              Selector:
+                                            </span>
+                                            <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700 break-all">
+                                              {step.selector}
+                                            </code>
+                                          </div>
+                                        )}
+                                        {step.value && (
+                                          <div className="mb-2">
+                                            <span className="text-xs text-slate-500 font-medium">
+                                              Value:
+                                            </span>
+                                            <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                              {step.value}
+                                            </code>
+                                          </div>
+                                        )}
+                                        {step.url && (
+                                          <div>
+                                            <span className="text-xs text-slate-500 font-medium">
+                                              URL:
+                                            </span>
+                                            <a
+                                              href={step.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="ml-2 text-sm text-blue-600 hover:text-blue-800 break-all"
+                                            >
+                                              {step.url}
+                                            </a>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Box>
 
       {/* Add Test Case Dialog - Enhanced with Better Guidance */}
       <Dialog
@@ -1338,15 +1706,27 @@ export default function TestPage() {
             placeholder="Enter Testcase Title"
             sx={{ mb: 2 }}
           />
-          <Button variant="contained" component="label" sx={{ mt: 2 }}>
-            Select JSON File
-            <input
-              type="file"
-              accept=".json"
-              hidden
-              onChange={handleFileSelect}
-            />
-          </Button>
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Button variant="contained" component="label" sx={{ mt: 2 }}>
+              Select JSON File
+              <input
+                type="file"
+                accept=".json"
+                hidden
+                onChange={handleFileSelect}
+              />
+            </Button>
+            <Box>
+              <Typography>Assign To Module</Typography>
+              <SelectBox
+                value={selectedGroup}
+                placeholder="Select Module"
+                menuList={GroupList}
+                handleChange={(e) => setSelectedGroup(e.target.value)}
+              />
+            </Box>
+          </Box>
+
           {selectedFile && (
             <Typography sx={{ mt: 1 }}>
               Selected file: {selectedFile.name}
