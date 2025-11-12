@@ -1,8 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Typography,
   Box,
@@ -120,7 +116,9 @@ export default function TestPage() {
   const [group, setGroup] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [expandedGroups, setExpandedGroups] = useState(new Set());
-  console.log("group", group);
+  const [moduleResult, setModuleResult] = useState(null);
+  const [showModuleResult, setShowModueResult] = useState(false);
+  const [groupReport, setGroupReport] = useState({});
 
   const { success } = useToast();
   const [showBackdrop, setShowBackdrop] = useState(false);
@@ -415,10 +413,25 @@ export default function TestPage() {
 
   const handleGroupRun = async (groupId) => {
     try {
-      await groupRun({ id: groupId });
+      const ModuleResult = await groupRun({ id: groupId });
+      setModuleResult(ModuleResult);
+      setShowModueResult(true);
+      setGroupReport((prev) => ({
+        ...prev,
+        [groupId]: ModuleResult?.data?.group_report,
+      }));
     } catch (error) {
       console.error("error:", error);
     }
+  };
+
+  const handleViewModuleResult = () => {
+    navigate(`/view-result`, { state: { data: moduleResult } });
+  };
+
+  const handleViewModuleReport = (report_url) => {
+    const group_report_url = `${DOMAIN}/media/${report_url}`;
+    window.open(group_report_url, "_blank");
   };
 
   const handleFileSelect = (e) => {
@@ -557,7 +570,7 @@ export default function TestPage() {
     <Box className="w-full p-2">
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        open={testcaseLoading}
+        open={testcaseLoading || isGroupRunLoading}
       >
         <CircularProgress color="inherit" />
       </Backdrop>
@@ -689,356 +702,6 @@ export default function TestPage() {
         Modules ({currentProject?.groups?.length || 0})
       </Typography>
 
-      {/* {currentProject?.testcases?.length === 0 ? (
-        <Card elevation={1}>
-          <CardContent sx={{ textAlign: "center", py: 6 }}>
-            <TestIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              No test cases yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first test case to start automated testing for this
-              project
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleAddTestCase(currentProject)}
-              size="large"
-            >
-              Create First Test Case
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {currentProject?.testcases?.map((testCase) => (
-            <Box
-              key={testCase?.id}
-              sx={{
-                width: "100%",
-              }}
-            >
-              <Accordion
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  "&.MuiAccordion-root": {
-                    "&:before": {
-                      display: "none",
-                    },
-                  },
-                }}
-              >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{
-                    minHeight: 64,
-                    "&.Mui-expanded": {
-                      minHeight: 64,
-                    },
-                  }}
-                >
-                  <Box
-                    className="flex flex-col md:flex-row items-start justify-start md:justify-between"
-                    sx={{
-                      alignItems: "center",
-                      width: "100%",
-                      minHeight: 40,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Typography
-                      variant="h6"
-                      className=" w-full md:w-auto"
-                      sx={{
-                        flexGrow: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        pr: 1,
-                      }}
-                      title={testCase?.name}
-                    >
-                      {testCase?.name}
-                    </Typography>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mr: 2,
-                      }}
-                    >
-                      {testCaseReports[testCase.id] && !uploadedFile && (
-                        <Tooltip title="Download HTML Report">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadReport(testCase.id);
-                            }}
-                            color="primary"
-                          >
-                            <FileDownload />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-
-                      <Tooltip title="Upload CSV or Excel file">
-                        <Button
-                          variant="outlined"
-                          startIcon={<UploadFile />}
-                          onClick={() => fileInputRef.current?.click()}
-                          //className="rounded-full min-w-4 mx-auto md:rounded-md"
-                        >
-                          {isMdscreen && "Upload Data"}
-                          <input
-                            type="file"
-                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                            ref={fileInputRef}
-                            style={{ display: "none" }}
-                            onChange={handleExcelUpload}
-                          />
-                        </Button>
-                      </Tooltip>
-
-                      <Tooltip title="Edit Test Case">
-                        <IconButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProject(currentProject);
-                            setSelectedTestCase(testCase);
-                            setTestCaseName(testCase.name);
-                            setTestSteps(
-                              testCase.steps.map((step) => ({
-                                action: step.action || "",
-                                field:
-                                  step.action === "goto"
-                                    ? step.url || ""
-                                    : step.selector || "",
-                                value: step.value || "",
-                                url: step.url || "", // Add URL field for goto actions
-                              }))
-                            );
-                            setIsEditingTestCase(true);
-                          }}
-                          className="rounded-full border"
-                        >
-                          <EditIcon />
-                        </IconButton>
-
-                        <IconButton
-                          onClick={() => handleDeleteTestcase(testCase)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        {testCase?.status === "passed" && (
-                          <CheckCircleIcon color="success" />
-                        )}
-                        {testCase?.status === "failed" && (
-                          <ErrorIcon color="error" />
-                        )}
-
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={
-                            runningTests.has(
-                              `${currentProject?.id}-${testCase?.id}`
-                            ) ? (
-                              <CircularProgress size={16} color="inherit" />
-                            ) : (
-                              <PlayIcon />
-                            )
-                          }
-                          className="p-1 w-8 md:w-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRunTestCase(currentProject, testCase);
-                          }}
-                        >
-                          {isMdscreen &&
-                            (runningTests.has(
-                              `${currentProject?.id}-${testCase?.id}`
-                            )
-                              ? "Running..."
-                              : "Run")}
-                        </Button>
-                      </Box>
-                    </Box>
-                  </Box>
-                </AccordionSummary>
-
-                <AccordionDetails
-                  sx={{
-                    flexGrow: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    pt: 2,
-                  }}
-                >
-                  {uploadedFile && (
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      Uploaded File: {uploadedFile.name}
-                    </Alert>
-                  )}
-
-                  <Typography
-                    variant="subtitle2"
-                    gutterBottom
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Test Steps ({testCase.steps.length}):
-                  </Typography>
-
-                  <Box sx={{ maxHeight: 300, overflowY: "auto", mb: 2 }}>
-                    {testCase.steps.map((step, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          minHeight: 60,
-                          gap: 1.5,
-                          mb: 1,
-                          p: 1.5,
-                          bgcolor: "grey.50",
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "grey.200",
-                          "&:last-child": {
-                            mb: 0,
-                          },
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            minWidth: 30,
-                            minHeight: 30,
-                            color: "primary.main",
-                            fontWeight: "bold",
-                            textAlign: "center",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {idx + 1}
-                        </Typography>
-
-                        <Chip
-                          label={step.action}
-                          size="small"
-                          color="primary"
-                          sx={{
-                            minWidth: 70,
-                            fontSize: "0.7rem",
-                            height: 30,
-                          }}
-                        />
-
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontFamily: "monospace",
-                            bgcolor: "white",
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 0.5,
-                            border: "1px solid",
-                            borderColor: "grey.300",
-                            flexGrow: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            fontSize: "0.7rem",
-                          }}
-                          title={step.selector || step.field}
-                        >
-                          {step.selector || step.field}
-                        </Typography>
-
-                        {step.value && (
-                          <Typography
-                            variant="caption"
-                            color="success.main"
-                            sx={{
-                              fontFamily: "monospace",
-                              fontWeight: "medium",
-                              fontSize: "0.7rem",
-                              maxWidth: 100,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                            title={step.value}
-                          >
-                            "{step.value}"
-                          </Typography>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-
-                  {testCase.result && (
-                    <Box
-                      sx={{
-                        mt: 3,
-                        p: 2,
-                        bgcolor:
-                          testCase.status === "passed"
-                            ? "success.light"
-                            : "error.light",
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          mb: 1,
-                        }}
-                      >
-                        <Typography variant="subtitle2" gutterBottom>
-                          Test Result:
-                        </Typography>
-                        {testCaseReports[testCase.id] && !uploadedFile && (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<FileDownload />}
-                            onClick={() => handleDownloadReport(testCase.id)}
-                            sx={{ ml: 2 }}
-                          >
-                            Download Report
-                          </Button>
-                        )}
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {testCase.result.message || "Test completed"}
-                      </Typography>
-                      {testCase.lastRun && (
-                        <Typography variant="caption" color="text.secondary">
-                          Run at: {new Date(testCase.lastRun).toLocaleString()}
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </AccordionDetails>
-              </Accordion>
-            </Box>
-          ))}
-        </Box>
-      )} */}
-
       <Box>
         <div className="grid gap-6">
           {groupData.map((group) => (
@@ -1081,9 +744,35 @@ export default function TestPage() {
                               {group.testcases.length} test case
                               {group.testcases.length !== 1 ? "s" : ""}
                             </span>
+
+                            {group?.group_report &&
+                              group?.group_report.trim() !== "" && (
+                                <div>
+                                  <Button
+                                    onClick={() =>
+                                      handleViewModuleReport(
+                                        group?.group_report
+                                      )
+                                    }
+                                    className="ml-2"
+                                  >
+                                    Report
+                                  </Button>
+                                </div>
+                              )}
                           </div>
                         </div>
 
+                        {showModuleResult && groupReport[group.id] && (
+                          <div>
+                            <Button
+                              variant="contained"
+                              onClick={handleViewModuleResult}
+                            >
+                              View Result
+                            </Button>
+                          </div>
+                        )}
                         <div>
                           <Button
                             size="small"

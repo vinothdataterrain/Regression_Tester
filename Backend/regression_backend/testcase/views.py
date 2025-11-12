@@ -26,6 +26,7 @@ import uuid
 from django.conf import settings
 from datetime import datetime
 from .utils import generate_html_report
+from .tests import generate_group_report
 from .models import TestActionLog
 from .utils import SetPagination
 from django.contrib.auth.models import User
@@ -317,6 +318,8 @@ class GroupViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "No testcases under this group."}, status=status.HTTP_404_NOT_FOUND)
 
             results = []
+            passed_count = 0
+            failed_count = 0
             for testcase in testcases:
                 import asyncio
                 # get all steps
@@ -328,19 +331,49 @@ class GroupViewSet(viewsets.ModelViewSet):
 
                 # Run each testcase
                 res = loop.run_until_complete(run_testcase_async(steps))
+                loop.close()
+                
                 report_path = generate_html_report(testcase.id, res)
+
+                testcase_status = "passed"
+                for step in res:
+                    if step.get("status") == "failed":
+                        testcase_status = "failed"
+                        break
+                if testcase_status == "passed":
+                    passed_count += 1
+                
+                else:
+                    failed_count += 1
+            
                 results.append({
                     "testcase_id": testcase.id,
                     "testcase_name": testcase.name,
+                    "status" : testcase_status,
                     "result": res,
                     "report": report_path,
                 })
-                loop.close()
+
+            # Determine overall group status
+            overall_status = "passed" if failed_count == 0 else "failed"
+
+
+            group_report_path = generate_group_report(
+                    group_name=group.name,
+                    total_tests=len(results),
+                    passed=passed_count,
+                    failed=failed_count,
+                    results=results
+                )
 
             return Response({
                 "group_id": group.id,
                 "group_name": group.name,
                 "total_testcases": len(results),
+                "status":overall_status,
+                "passed": passed_count,
+                "failed": failed_count,
+                "group_report": group_report_path,
                 "results": results
             }, status=status.HTTP_200_OK)
 

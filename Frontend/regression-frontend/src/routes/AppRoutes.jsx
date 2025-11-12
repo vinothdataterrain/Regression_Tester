@@ -8,6 +8,7 @@ import PythonExecutor from "../pages/pythonExecutor";
 import TestCaseProgress from "../pages/TestProgress";
 import Project from "../pages/projects";
 import SignUpPage from "../pages/signUp";
+import ModuleResult from "../components/module/viewResult";
 
 export default function AppRoutes() {
   const PrivateRoute = () => {
@@ -41,6 +42,7 @@ export default function AppRoutes() {
           <Route path="/results" element={<TestCaseProgress />} />
           <Route path="/results/:id" element={<TestCaseProgress />} />
           <Route path="/pythonScripts" element={<PythonExecutor />} />
+          <Route path="/view-result" element={<ModuleResult />} />
         </Route>
       </Route>
     </Routes>
