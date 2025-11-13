@@ -10,7 +10,7 @@ export const ProjectFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags : [PROJECT],
+      invalidatesTags: [PROJECT],
     }),
 
     updateProject: builder.mutation({
@@ -51,23 +51,23 @@ export const ProjectFeed = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags : [GROUP],
+      invalidatesTags: [GROUP],
     }),
 
     getGroups: builder.query({
       query: (id) => ({
         url: `/groups/`,
         method: "GET",
-        params : {project : id},
+        params: { project: id },
       }),
-      providesTags : [GROUP],
+      providesTags: [GROUP],
     }),
 
     runGroup: builder.mutation({
-        query: ({id}) => ({
-          url: `/groups/${id}/run/`,
-          method: "POST",
-        })
+      query: ({ id }) => ({
+        url: `/groups/${id}/run/`,
+        method: "POST",
+      }),
     }),
 
     createTestCase: builder.mutation({
@@ -100,10 +100,17 @@ export const ProjectFeed = api.injectEndpoints({
       query: (id) => `/testcases/${id}/task-status/`,
     }),
     getAllTaskStatus: builder.query({
-      query: () => `/testcases/all-task-status/`,
+      query: (params) => ({
+        url: `/testcases/all-task-status/`,
+        params,
+      }),
     }),
     getAllReports: builder.query({
-      query: () => `/testcases/reports/`,
+      query: (params) => ({
+        url: `/testcases/reports/`,
+        method: "GET",
+        params,
+      }),
     }),
     runTestCase: builder.mutation({
       query: ({ id, file }) => ({

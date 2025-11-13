@@ -232,6 +232,7 @@ async def run_testcase_async(steps, values=None, name = ""):
                 if action != "validate_form":
                     results.append({
                         "action": action,
+                        "selector" : selector,
                         "value": raw_value,
                         "step_number": step_order + 1,
                         "status": "passed"
@@ -251,6 +252,7 @@ async def run_testcase_async(steps, values=None, name = ""):
                 results.append({
                     "action": action,
                     "value": raw_value,
+                    "selector": selector,
                     "step_number": step_order + 1,
                     "status": "failed",
                     "error": str(exc),

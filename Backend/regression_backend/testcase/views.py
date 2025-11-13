@@ -172,9 +172,11 @@ class SummaryView(APIView):
         if not team:
             return Response({"detail": "User is not assigned to any team."}, status=400)
         projects = Project.objects.filter(team=team)
+        modules = Group.objects.filter(project__team=team)
         testcases = TestCase.objects.filter(project__team=team)
         teststeps = TestStep.objects.filter(testcase__project__team=team)
         project_count = projects.count()
+        module_count = modules.count()
         testcase_count = testcases.count()
         teststeps_count = teststeps.count()
 
@@ -182,6 +184,7 @@ class SummaryView(APIView):
 
         data = {
             "totalProjects" : project_count,
+            "totalModules" : module_count,
             "totalTestCases" : testcase_count,
             "totalTestSteps" : teststeps_count,
             "avgSteps" : round(avg_steps, 1)
@@ -192,6 +195,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
     queryset = TestCase.objects.all()
     serializer_class = TestCaseSerializer
     permission_classes = [AllowAny]
+    pagination_class = SetPagination
 
     # --- API Endpoint ---
     @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
@@ -272,6 +276,10 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     "result_file": latest_run.result_file.url if latest_run.result_file else None,
                 })
 
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+
         return Response(data)
   
     @action(detail=False, methods=["get"], url_path="reports")
@@ -294,6 +302,10 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     "report": latest_report.report.url if latest_report.report else None,
                     "created_at": latest_report.created_at,
                 })
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+
 
         return Response(data, status=status.HTTP_200_OK)
 

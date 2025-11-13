@@ -8,10 +8,12 @@ import { formatTableNullValues } from "../utils/constant";
 import { DataGrid } from "@mui/x-data-grid";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,6 +22,10 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
   Menu,
   MenuItem,
   Snackbar,
@@ -32,13 +38,98 @@ import {
   Edit as EditIcon,
   ViewList,
   GridView,
+  Close,
 } from "@mui/icons-material";
 import MoreIcon from "../assets/icons/moreiconRed.svg";
 import ViewIcon from "../assets/images/view1x.png";
 import { useNavigate } from "react-router-dom";
 import ProjectCard from "../components/Cardview";
-import TeamMembersPanel from "../components/dashboard/TeamView";
 import { toast } from "react-toastify";
+
+const ModuleChips = ({ groups }) => {
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+  const visibleGroups = groups?.slice(0, 1);
+  const hiddenCount = groups.length - 1;
+  return (
+    <div className="w-full items-center h-full">
+      {/* Display Chips */}
+      <Box display="flex" className="w-full h-full items-center">
+        {visibleGroups.map((group) => (
+          <Chip
+            key={group.name}
+            label={group.name}
+            onClick={handleOpen}
+            sx={{ m: 0.5 }}
+          />
+        ))}
+
+        {hiddenCount > 0 && (
+          <Chip
+            label={`+${hiddenCount} more`}
+            onClick={handleOpen}
+            sx={{ m: 0.5 }}
+            className="bg-gray-300"
+          />
+        )}
+      </Box>
+
+      {/* Modal to show all emails */}
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle className="border-b flex justify-between">
+          Modules <Close onClick={handleClose} className="cursor-pointer" />
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            sx={{
+              height: 300, 
+              overflowY: "auto",
+              pr: 1,
+              my: 2,
+            }}
+          >
+            <List>
+              {groups.map((group) => (
+                <ListItem
+                  key={group.id}
+                  sx={{
+                    mb: 1,
+                    borderRadius: 2,
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      boxShadow: 3,
+                      transform: "translateY(-3px)",
+                      backgroundColor: "rgba(63, 81, 181, 0.05)",
+                    },
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar>
+                      {group.name[0].toUpperCase()}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {group.name}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography variant="body2" color="text.secondary">
+                        {group.description}
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 
 export default function Project() {
   const navigate = useNavigate();
@@ -59,20 +150,30 @@ export default function Project() {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
-  const [createProject, {isSuccess : isProjectSuccess, isError : isProjectError, error : ProjectError, isLoading : isProjectLoading}] = useCreateProjectMutation();
+  const [
+    createProject,
+    {
+      isSuccess: isProjectSuccess,
+      isError: isProjectError,
+      error: ProjectError,
+      isLoading: isProjectLoading,
+    },
+  ] = useCreateProjectMutation();
 
   const [editProject] = useUpdateProjectMutation();
 
-  const { data: projectsData } = useGetProjectsQuery({} , {refetchOnMountOrArgChange : true});
+  const { data: projectsData } = useGetProjectsQuery(
+    {},
+    { refetchOnMountOrArgChange: true }
+  );
 
   useEffect(() => {
-    if(isProjectSuccess){
-      toast.success("Project Added Successfully!")
+    if (isProjectSuccess) {
+      toast.success("Project Added Successfully!");
+    } else if (isProjectError && ProjectError) {
+      toast.error(ProjectError?.data?.detail || "Failed to add project");
     }
-    else if(isProjectError && ProjectError){
-      toast.error(ProjectError?.data?.detail || "Failed to add project")
-    }
-  },[isProjectSuccess, isProjectError])
+  }, [isProjectSuccess, isProjectError]);
 
   useEffect(() => {
     if (projectsData?.results) {
@@ -163,8 +264,8 @@ export default function Project() {
   };
 
   const handleClick = (id) => {
-    navigate(`/projects/${id}`)
-  }
+    navigate(`/projects/${id}`);
+  };
 
   const ProjectsTableColumn = [
     {
@@ -190,7 +291,23 @@ export default function Project() {
         );
       },
     },
-
+    {
+      field: "id",
+      headerName: "Project ID",
+      flex: 1,
+      id: 1,
+      minWidth: 200,
+      renderCell: (params) => {
+        return (
+          <div className="cursor-pointer flex justify-start items-center h-full w-full ">
+            <Chip 
+            label={`#${params?.row?.id}`}
+            size="small"
+            />
+          </div>
+        );
+      },
+    },
     {
       field: "name",
       headerName: "Project Name",
@@ -199,8 +316,13 @@ export default function Project() {
       minWidth: 200,
       renderCell: (params) => {
         return (
-          <div className="cursor-pointer flex justify-start items-center h-full w-full " onClick={() => handleClick(params?.row?.id)}>
-            <span className="text-blue-600 underline">{params?.row?.name ?? "..."}</span>
+          <div
+            className="cursor-pointer flex justify-start items-center h-full w-full "
+            onClick={() => handleClick(params?.row?.id)}
+          >
+            <span className="text-blue-600 underline">
+              {params?.row?.name ?? "..."}
+            </span>
           </div>
         );
       },
@@ -236,21 +358,29 @@ export default function Project() {
       },
     },
     {
-      field: "testcasesLength",
-      headerName: "Number of Testcases",
+      field: "groups",
+      headerName: "Modules",
       flex: 6,
       id: 5,
       minWidth: 200,
-      renderCell: (params) => {
-        return (
-          <div className="cursor-pointer flex justify-start items-center h-full w-full ">
-            <span className="text-black">
-              {params?.row?.testcases?.length ?? "..."}
-            </span>
-          </div>
-        );
-      },
+      renderCell: (params) => <ModuleChips groups={params?.value} />,
     },
+    // {
+    //   field: "testcases",
+    //   headerName: "Number of Testcases",
+    //   flex: 6,
+    //   id: 5,
+    //   minWidth: 200,
+    //   renderCell: (params) => {
+    //     return (
+    //       <div className="cursor-pointer flex justify-start items-center h-full w-full ">
+    //         <span className="text-black">
+    //           {params?.row?.groups?.length ?? "..."}
+    //         </span>
+    //       </div>
+    //     );
+    //   },
+    // },
   ];
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
@@ -501,7 +631,10 @@ export default function Project() {
             }}
           >
             {projectsData?.results?.map((project) => (
-               <Box key={project?.id} sx={{ display: 'flex', width: '100%', minWidth: 0 }}>
+              <Box
+                key={project?.id}
+                sx={{ display: "flex", width: "100%", minWidth: 0 }}
+              >
                 <ProjectCard project={project} />
               </Box>
             ))}

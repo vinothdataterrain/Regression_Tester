@@ -198,7 +198,7 @@ const ModuleResult = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Card>
                     <CardContent>
-                      <Typography variant="body2" gutterBottom>
+                      <Typography variant="body2" gutterBottom color="success.main">
                         Passed Testcases
                       </Typography>
                       <Typography variant="h4" fontWeight="bold">
@@ -210,7 +210,7 @@ const ModuleResult = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Card>
                     <CardContent>
-                      <Typography variant="body2" gutterBottom>
+                      <Typography variant="body2" gutterBottom color="error.main">
                         Failed Testcases
                       </Typography>
                       <Typography variant="h4" fontWeight="bold">

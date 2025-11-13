@@ -647,7 +647,7 @@ export default function TestPage() {
 
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Chip
-                  label={`${currentProject?.testcases?.length || 0} test cases`}
+                  label={`${currentProject?.groups?.length || 0} modules`}
                   size="small"
                   color="primary"
                   className="!bg-blue-200 !text-blue-500"
@@ -669,7 +669,7 @@ export default function TestPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => handleAddTestCase(currentProject)}
+                onClick={() => {setSelectedGroup(""); handleAddTestCase(currentProject)}}
                 size="small"
                 className="!min-w-[120px] !bg-blue-700"
               >
@@ -708,7 +708,7 @@ export default function TestPage() {
             <div
               key={group.id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
-              onClick={() => setGroup(group)}
+              onClick={() => {setGroup(group); setSelectedGroup(group.name);}}
             >
               {/* Group Header */}
               <div
@@ -1051,6 +1051,16 @@ export default function TestPage() {
               placeholder="e.g., User Login Flow Test"
               sx={{ mb: 3 }}
             />
+
+            <Box  sx={{ mb : 2}}>
+              <Typography sx={{ mb : 1}}>Assign To Module</Typography>
+              <SelectBox
+                value={selectedGroup}
+                placeholder="Select Module"
+                menuList={GroupList}
+                handleChange={(e) => setSelectedGroup(e.target.value)}
+              />
+            </Box>
 
             <Typography variant="h6" gutterBottom>
               Test Steps

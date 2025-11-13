@@ -57,8 +57,8 @@ export default function TeamMembersPanel() {
       {/* Member Cards */}
 
       {data?.length ? (
-        data?.map((team) => (
-          <Box>
+        data?.map((team, index) => (
+          <Box key={team.id || index}>
             {team?.team_name && (
               <Typography variant="body2" color="text.secondary">
                 {team.team_name}

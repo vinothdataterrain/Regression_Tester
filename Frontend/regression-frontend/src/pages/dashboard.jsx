@@ -53,6 +53,14 @@ const Dashboard = () => {
       borderColor: '#90caf9'
     },
     {
+      title: 'Total Modules',
+      value: summaryData?.totalModules || 0,
+      icon: '📈',
+      color: '#7b1fa2',
+      bgColor: '#f3e5f5',
+      borderColor: '#ba68c8',
+    },
+    {
       title: 'Total Test Cases',
       value: summaryData?.totalTestCases || 0,
       icon: '📄',
@@ -68,14 +76,6 @@ const Dashboard = () => {
       bgColor: '#fff3e0',
       borderColor: '#ffb74d'
     },
-    {
-      title: 'Avg Steps per Test',
-      value: summaryData?.avgSteps || 0,
-      icon: '📈',
-      color: '#7b1fa2',
-      bgColor: '#f3e5f5',
-      borderColor: '#ba68c8'
-    }
   ];
 
   if (error) {
