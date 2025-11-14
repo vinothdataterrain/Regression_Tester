@@ -497,7 +497,7 @@ const TestCaseProgress = () => {
               </Typography>
             </Tooltip>
             <Chip
-              label={`${ReportsData?.length || 0} Reports`}
+              label={`${ReportsData?.count || 0} Reports`}
               color="primary"
               variant="outlined"
             />
@@ -564,7 +564,7 @@ const TestCaseProgress = () => {
             </Tooltip>
 
             <Chip
-              label={`${ResultData?.length || 0} Results`}
+              label={`${ResultData?.count || 0} Reports`}
               color="primary"
               variant="outlined"
             />

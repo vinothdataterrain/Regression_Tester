@@ -55,10 +55,14 @@ export const ProjectFeed = api.injectEndpoints({
     }),
 
     getGroups: builder.query({
-      query: (id) => ({
+      query: ({ id, page, limit }) => ({
         url: `/groups/`,
         method: "GET",
-        params: { project: id },
+        params: {
+          project: id,
+          page: page,
+          limit: limit,
+        },
       }),
       providesTags: [GROUP],
     }),

@@ -88,6 +88,7 @@ import SuccessGradientMessage from "../components/successPopup";
 
 import { SelectBox } from "../components/common/selectBox";
 import Group from "../components/module/addGroup";
+import { CustomPagination } from "../utils/customPagination";
 
 export default function TestPage() {
   const navigate = useNavigate();
@@ -100,6 +101,10 @@ export default function TestPage() {
     severity: "success",
   });
   const [stateOption, setStateOption] = useState(null);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 1,
+    pageSize: 6,
+  });
 
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
@@ -155,11 +160,11 @@ export default function TestPage() {
 
   const { data, isLoading, error } = useGetProjectbyIdQuery(projectId);
 
-  const { data: groupData } = useGetGroupsQuery(currentProject?.id, {
+  const { data: groupData } = useGetGroupsQuery({page: paginationModel?.page , limit : paginationModel?.pageSize, id : currentProject?.id}, {
     refetchOnMountOrArgChange: true,
   });
 
-  const GroupList = groupData?.map((e) => ({ label: e.name, value: e.id }));
+  const GroupList = groupData?.results?.map((e) => ({ label: e.name, value: e.id })) || [];
 
   // Set the current project directly from API response
   useEffect(() => {
@@ -191,6 +196,13 @@ export default function TestPage() {
     setIsAddingTestCase(true);
     setTestCaseName("");
     setTestSteps([{ action: "", field: "", value: "" }]);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: newPage,
+    }));
   };
 
   const toggleGroup = (groupId) => {
@@ -338,6 +350,7 @@ export default function TestPage() {
             value: step.value || "",
             ...(step.url && { url: step.url }),
           })),
+          ...[{ action: "wait", selector: "", value: "5000" }],
           ...(stateOption === "save" && currentProject
             ? [{ action: "save", value: `${currentProject.name}.json` }]
             : []),
@@ -471,6 +484,7 @@ export default function TestPage() {
             ? [{ action: "use", value: `${currentProject.name}.json` }]
             : []),
           ...PlaywrightFormat,
+          ...[{ action: "wait", selector: "", value: "5000" }],
           ...(stateOption === "save" && currentProject
             ? [{ action: "save", value: `${currentProject.name}.json` }]
             : []),
@@ -669,7 +683,10 @@ export default function TestPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => {setSelectedGroup(""); handleAddTestCase(currentProject)}}
+                onClick={() => {
+                  setSelectedGroup("");
+                  handleAddTestCase(currentProject);
+                }}
                 size="small"
                 className="!min-w-[120px] !bg-blue-700"
               >
@@ -695,20 +712,22 @@ export default function TestPage() {
         </CardContent>
       </Card>
 
-      <Divider sx={{ mb: 4 }} />
-
       {/* Test Cases Section */}
       <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
         Modules ({currentProject?.groups?.length || 0})
       </Typography>
 
-      <Box>
+      <Box
+      >
         <div className="grid gap-6">
-          {groupData.map((group) => (
+          {(groupData?.results).map((group) => (
             <div
               key={group.id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
-              onClick={() => {setGroup(group); setSelectedGroup(group.name);}}
+              onClick={() => {
+                setGroup(group);
+                setSelectedGroup(group.name);
+              }}
             >
               {/* Group Header */}
               <div
@@ -1018,6 +1037,14 @@ export default function TestPage() {
             </div>
           ))}
         </div>
+        <div className="my-4">
+          <CustomPagination
+            totalItems={groupData?.count || 0}
+            pageSize={paginationModel.pageSize}
+            currentPage={paginationModel.page}
+            onPageChange={handlePageChange}
+          />
+        </div>
       </Box>
 
       {/* Add Test Case Dialog - Enhanced with Better Guidance */}
@@ -1052,8 +1079,8 @@ export default function TestPage() {
               sx={{ mb: 3 }}
             />
 
-            <Box  sx={{ mb : 2}}>
-              <Typography sx={{ mb : 1}}>Assign To Module</Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ mb: 1 }}>Assign To Module</Typography>
               <SelectBox
                 value={selectedGroup}
                 placeholder="Select Module"

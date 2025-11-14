@@ -40,7 +40,7 @@ export default function Group({ currentProject }) {
   }, [isGroupCreationSuccess, isGroupCreationError]);
 
   const AddGroup = async () => {
-    if (!group.name.trim() || !group.description.trim()) return;
+    if (!group.name.trim()) return;
     try {
       const groupData = {
         project : currentProject?.id,

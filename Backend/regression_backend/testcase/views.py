@@ -152,17 +152,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "count": queryset.count(),
             "results": serializer.data
         })
-
-class GroupViewSet(viewsets.ModelViewSet):
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-
-    def get_queryset(self):
-        project_id = self.request.query_params.get("project")
-        if project_id:
-            return self.queryset.filter(project_id=project_id)
-        return self.queryset
-    
     
 class SummaryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -289,7 +278,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         if not team:
             return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
         projects = Project.objects.filter(team=team)
-        testcases = TestCase.objects.filter(project__in=projects)
+        testcases = TestCase.objects.filter(project__in=projects).order_by('-id')
         data = []
         for testcase in testcases:
             latest_report = TestRunReport.objects.filter(testcase=testcase).order_by("-created_at").first()
@@ -319,7 +308,14 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    pagination_class = SetPagination
 
+    def get_queryset(self):
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            return self.queryset.filter(project_id=project_id)
+        return self.queryset
+    
     @action(detail=True, methods=["post"], url_path="run")
     def run_group(self, request, pk=None):
         try:
