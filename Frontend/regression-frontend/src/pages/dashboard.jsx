@@ -3,9 +3,10 @@ import { useGetSummaryQuery } from '../services/runTestCases.api.services';
 import { useNavigate } from 'react-router-dom';
 import { useGetRecentActionsQuery } from '../services/dashboard.services';
 import TestHistoryGrid from '../components/dashboard/recentActions';
-import { Box } from '@mui/material';
-import { Person } from '@mui/icons-material';
 import TeamMembersPanel from '../components/dashboard/TeamView';
+import { useGetUserTeamsQuery } from '../services/team';
+import TeamList from '../components/dashboard/teamList';
+import { useProfile } from '../hooks/getProfile';
 //import { useGetUserTeamsQuery } from '../services/login.api.services';
 
 const Dashboard = () => {
@@ -18,11 +19,12 @@ const Dashboard = () => {
     page : 0,
     pageSize: 5,
   })
+  const {data:teams} = useGetUserTeamsQuery();
+  const {profile} = useProfile();
   const {data:actions} = useGetRecentActionsQuery({
     page : paginationModel?.page + 1,
     limit : paginationModel?.pageSize,
   },{refetchOnMountOrArgChange:true});
-  //const {data: team} = useGetUserTeamsQuery();
   // Loading skeleton component
   const LoadingSkeleton = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -42,7 +44,6 @@ const Dashboard = () => {
       }}></div>
     </div>
   );
-
   const summaryCards = [
     {
       title: 'Total Projects',
@@ -324,7 +325,7 @@ const Dashboard = () => {
         )}
 
         <TeamMembersPanel />
- 
+       {profile?.role === "admin" && <TeamList teams={teams}/>}
         {/* Additional Dashboard Sections */}
         {!isLoading && !error && (
           <div style={{

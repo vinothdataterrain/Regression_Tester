@@ -5,17 +5,20 @@ import { logout } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserdata, resetUserdata } from "../features/userSlice";
 import { jwtDecode } from "jwt-decode";
-import { Menu as MenuIcon, Close as CloseIcon, Dataset, Analytics, Article, Terminal } from '@mui/icons-material';
+import { Menu as MenuIcon, Close as CloseIcon, Dataset, Analytics, Article, Terminal, Person, Logout } from '@mui/icons-material';
 import MobileDrawer from './mobileDrawer';
 import { api } from "../services/api";
 
 const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLogout }) => {
   const [anchorEl, setAnchorEl] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-
+  const navigate = useNavigate();
   const handleMenuClick = () => setAnchorEl(!anchorEl);
   const handleMenuClose = () => setAnchorEl(false);
-
+  const handleProfile = () =>{
+    navigate("/profile");
+    handleMenuClose();
+  }
   return (
     <>
       {/* Top Navbar */}
@@ -70,14 +73,14 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                         <div className="text-xs text-gray-500">{user?.email}</div>
                       </div>
                       
-                      {/* <button
-                        onClick={handleMenuClose}
+                       <button
+                        onClick={handleProfile}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                       >
-                        <span>👤</span>
+                        <span><Person/></span>
                         <span>Profile</span>
                       </button>
-                      <button
+                     {/* <button
                         onClick={handleMenuClose}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                       >
@@ -89,7 +92,7 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                         onClick={handleLogout}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
                       >
-                        <span>🚪</span>
+                        <span><Logout/></span>
                         <span>Logout</span>
                       </button>
                     </div>

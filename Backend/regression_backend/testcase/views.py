@@ -124,6 +124,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if user.is_superuser:
+            return Project.objects.all()
         team = Team.objects.filter(members=user)
         return Project.objects.filter(team__in=team).order_by('id')
 
@@ -156,6 +158,22 @@ class SummaryView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         user = request.user
+        if user.is_superuser:
+            all_projects = Project.objects.all()
+            all_testcases = TestCase.objects.all()
+            all_teststeps = TestStep.objects.all()
+            all_project_count = all_projects.count()
+            all_testcase_count = all_testcases.count()
+            all_teststeps_count = all_teststeps.count()
+
+            avg_steps = all_testcases.annotate(step_count=Count('steps')).aggregate(avg_steps=Avg('step_count'))['avg_steps'] or 0
+            admin_data = {
+            "totalProjects" : all_project_count,
+            "totalTestCases" : all_testcase_count,
+            "totalTestSteps" : all_teststeps_count,
+            "avgSteps" : round(avg_steps, 1)
+            }
+            return Response(admin_data)
         team = Team.objects.filter(members=user).first()
         if not team:
             return Response({"detail": "User is not assigned to any team."}, status=400)
@@ -165,8 +183,9 @@ class SummaryView(APIView):
         project_count = projects.count()
         testcase_count = testcases.count()
         teststeps_count = teststeps.count()
-
+   
         avg_steps = testcases.annotate(step_count=Count('steps')).aggregate(avg_steps=Avg('step_count'))['avg_steps'] or 0
+    
 
         data = {
             "totalProjects" : project_count,
@@ -174,6 +193,7 @@ class SummaryView(APIView):
             "totalTestSteps" : teststeps_count,
             "avgSteps" : round(avg_steps, 1)
         }
+
         return Response(data)
 
 class TestCaseViewSet(viewsets.ModelViewSet):
@@ -297,8 +317,24 @@ class UserTeamsView(APIView):
 
     def get(self, request):
         user = request.user
-        teams = Team.objects.filter(members=user).values("id", "name")
-        return Response(list(teams))
+        teams = Team.objects.all() if user.is_superuser else Team.objects.filter(members=user)
+
+        data = []
+
+        for team in teams:
+            data.append({
+                "id": team.id,
+                "name": team.name,
+                "created_at": team.created_at,
+                "members": [
+                    {
+                        "username": m.username,
+                        "email": m.email,
+                    }
+                    for m in team.members.all()
+                ]
+            })
+        return Response(list(data))
 
 class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TestActionLog.objects.all().order_by('-id')
@@ -307,9 +343,12 @@ class RecentActionsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-
+        teams = []
+        if user.is_superuser:
+            teams = Team.objects.all()
+        else:
         # Get all teams where the user is a member
-        teams = Team.objects.filter(members=user)
+            teams = Team.objects.filter(members=user)
 
         # Get all project names under those teams
         project_names = Project.objects.filter(team__in=teams).values_list("name", flat=True)
