@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets,status
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenRefreshView
-
+from .models import Profile
+from .serializers import ProfileSerializer
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -71,4 +72,20 @@ def _get_token(data):
     except AuthenticationFailed as e:
         return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def put(self, request):
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
