@@ -54,6 +54,22 @@ export const ProjectFeed = api.injectEndpoints({
       invalidatesTags: [GROUP],
     }),
 
+    editGroup: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/groups/${id}/`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: [GROUP],
+    }),
+
+    deleteGroup: builder.mutation({
+      query: (id) => ({
+        url: `/groups/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [GROUP],
+    }),
     getGroups: builder.query({
       query: ({ id, page, limit }) => ({
         url: `/groups/`,
@@ -151,6 +167,8 @@ export const {
   useCreateProgramMutation,
   useCreateProjectMutation,
   useCreateGroupMutation,
+  useEditGroupMutation,
+  useDeleteGroupMutation,
   useGetGroupsQuery,
   useRunGroupMutation,
   useGetAllTaskStatusQuery,

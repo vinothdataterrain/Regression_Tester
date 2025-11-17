@@ -11,11 +11,20 @@ import {
 } from "@mui/material";
 import { Add as AddIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
-import { useCreateGroupMutation } from "../../services/runTestCases.api.services";
+import {
+  useCreateGroupMutation,
+  useEditGroupMutation,
+} from "../../services/runTestCases.api.services";
 
-export default function Group({ currentProject }) {
-  const [isAddingGroup, setIsAddingGroup] = useState(false);
-  const [isEditingGroup, setIsEditingGroup] = useState(false);
+export default function Group({
+  open,
+  currentProject,
+  selectedModule,
+  mode,
+  onClose,
+}) {
+  const isAdding = mode === "add";
+  const isEditing = mode === "edit";
   const [group, setGroup] = useState({
     name: "",
     description: "",
@@ -31,110 +40,113 @@ export default function Group({ currentProject }) {
     },
   ] = useCreateGroupMutation();
 
+  const [
+    editGroup,
+    {
+      isSuccess: isEditGroupSuccess,
+      isError: isEditGroupError,
+      isLoading: isEditGroupLoading,
+      error: editGroupError,
+    },
+  ] = useEditGroupMutation();
+
+  useEffect(() => {
+    if (isEditing && selectedModule) {
+      setGroup({
+        name: selectedModule?.name,
+        description: selectedModule?.description,
+      });
+    }
+  }, [isEditing, selectedModule]);
+
+  console.log("selectedgroup", selectedModule)
+
   useEffect(() => {
     if (isGroupCreationSuccess) {
-      toast.success("Group created successfully!");
+      toast.success("Module created successfully!");
     } else if (isGroupCreationError && GroupCreationError) {
-      toast.error(GroupCreationError?.data || "Failed to create Group!");
+      toast.error(GroupCreationError?.data || "Failed to create Module!");
     }
   }, [isGroupCreationSuccess, isGroupCreationError]);
 
-  const AddGroup = async () => {
+  useEffect(() => {
+    if (isEditGroupSuccess) {
+      toast.success("Module updated successfully!");
+    } else if (isEditGroupError && editGroupError) {
+      toast.error(editGroupError?.data || "Failed to update Module!");
+    }
+  }, [isEditGroupSuccess, isEditGroupError]);
+
+  const handleSubmit = async () => {
     if (!group.name.trim()) return;
     try {
       const groupData = {
-        project : currentProject?.id,
+        project: currentProject?.id,
         name: group.name,
         description: group.description,
       };
-      await createGroup(groupData);
+      if (isAdding) {
+        await createGroup(groupData);
+      }
+      if (isEditing) {
+        await editGroup({ id: selectedModule?.id, data: groupData });
+      }
       setGroup({ name: "", description: "" });
-      setIsAddingGroup(false);
+      onClose();
     } catch (error) {
       console.error("Failed to create group: ", error);
     }
   };
 
-  const EditGroup = () => {};
-
   return (
     <Box>
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={() => {
-          setIsAddingGroup(true);
-        }}
-        size="small"
-        className="!min-w-[120px] !bg-blue-700"
-      >
-        {"Add Group"}
-      </Button>
-      <Dialog
-        open={isAddingGroup || isEditingGroup}
-        onClose={() => {
-          setIsAddingGroup(false);
-          setIsEditingGroup(false);
-        }}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <AddIcon color="primary" />
-            {isAddingGroup ? "Add New Group" : "Update Group"}
+            {isAdding ? "Add New Module" : "Update Module"}
           </Box>
         </DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Group Title"
+            label="Module Title"
             multiline
             rows={1}
             fullWidth
             variant="outlined"
             value={group.name}
-            onChange={(e) => setGroup({...group, name : e.target.value})}
+            onChange={(e) => setGroup({ ...group, name: e.target.value })}
             required
-            placeholder="Enter Group Name"
+            placeholder="Enter Module Name"
             sx={{ mb: 2 }}
           />
           <TextField
             margin="dense"
-            label="Group Description"
+            label="Module Description"
             multiline
             rows={3}
             fullWidth
             variant="outlined"
             value={group.description}
-            onChange={(e) => setGroup({...group, description : e.target.value})}
-            placeholder="Describe what this Group does and what you want to test..."
+            onChange={(e) =>
+              setGroup({ ...group, description: e.target.value })
+            }
+            placeholder="Describe what this Module does and what you want to test..."
           />
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={() => {
-              setIsAddingGroup(false);
-              setIsEditingGroup(false);
-            }}
-            color="inherit"
-          >
+          <Button onClick={onClose} color="inherit">
             Cancel
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={isGroupCreationLoading}
-            onClick={() => {
-              if (isAddingGroup) {
-                AddGroup();
-              } else if (isEditingGroup) {
-                EditGroup();
-              }
-            }}
+            onClick={handleSubmit}
             startIcon={<AddIcon />}
           >
-            {isAddingGroup ? "Add Group" : "Update Group"}
+            {isAdding ? "Add Module" : "Update Module"}
           </Button>
         </DialogActions>
       </Dialog>

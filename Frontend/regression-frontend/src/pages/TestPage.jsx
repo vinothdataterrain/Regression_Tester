@@ -37,6 +37,7 @@ import {
   useTheme,
   useMediaQuery,
   Backdrop,
+  Menu,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -64,10 +65,12 @@ import {
   ExpandMore,
   PlayArrow,
   List,
+  KeyboardArrowDown,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
   useCreateTestCaseMutation,
+  useDeleteGroupMutation,
   useDeleteTestCaseMutation,
   useEditTestCaseMutation,
   useGetGroupsQuery,
@@ -124,6 +127,10 @@ export default function TestPage() {
   const [moduleResult, setModuleResult] = useState(null);
   const [showModuleResult, setShowModueResult] = useState(false);
   const [groupReport, setGroupReport] = useState({});
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const [mode, setMode] = useState(null);
+  const [selectedModule, setSelectedModule] = useState(null);
 
   const { success } = useToast();
   const [showBackdrop, setShowBackdrop] = useState(false);
@@ -158,13 +165,23 @@ export default function TestPage() {
     },
   ] = useRunGroupMutation();
 
+  const [deleteGroup] = useDeleteGroupMutation();
+
   const { data, isLoading, error } = useGetProjectbyIdQuery(projectId);
 
-  const { data: groupData } = useGetGroupsQuery({page: paginationModel?.page , limit : paginationModel?.pageSize, id : currentProject?.id}, {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: groupData } = useGetGroupsQuery(
+    {
+      page: paginationModel?.page,
+      limit: paginationModel?.pageSize,
+      id: currentProject?.id,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
-  const GroupList = groupData?.results?.map((e) => ({ label: e.name, value: e.id })) || [];
+  const GroupList =
+    groupData?.results?.map((e) => ({ label: e.name, value: e.id })) || [];
 
   // Set the current project directly from API response
   useEffect(() => {
@@ -224,6 +241,14 @@ export default function TestPage() {
       check: "bg-pink-100 text-pink-700",
     };
     return colors[action] || "bg-gray-100 text-gray-700";
+  };
+
+  const handleActionClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   const handleEditTestCase = async (testCase) => {
@@ -424,6 +449,18 @@ export default function TestPage() {
     }
   };
 
+  const handleAddGroup = () => {
+    setMode("add");
+    setSelectedModule("");
+  };
+  const handleEditGroup = (module) => {
+    setMode("edit");
+    
+  console.log("selectedgroup123", module)
+    setSelectedModule(module);
+    handleClose();
+  };
+
   const handleGroupRun = async (groupId) => {
     try {
       const ModuleResult = await groupRun({ id: groupId });
@@ -435,6 +472,17 @@ export default function TestPage() {
       }));
     } catch (error) {
       console.error("error:", error);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    try {
+      await deleteGroup(groupId);
+      handleClose();
+      toast.success("Module deleted!!");
+    } catch (error) {
+      console.error("Error in deleting module: ", error);
+      toast.error("Failed to delete Module!");
     }
   };
 
@@ -601,8 +649,15 @@ export default function TestPage() {
           </Link>
           <Typography color="text.primary">{currentProject?.name}</Typography>
         </Breadcrumbs>
-
-        <Group currentProject={currentProject} />
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAddGroup}
+          size="small"
+          sx={{ mb : 2}}
+        >
+          Add Module
+        </Button>
       </Box>
 
       {/* Project Header */}
@@ -717,27 +772,26 @@ export default function TestPage() {
         Modules ({currentProject?.groups?.length || 0})
       </Typography>
 
-      <Box
-      >
+      <Box>
         <div className="grid gap-6">
-          {(groupData?.results).map((group) => (
+          {(groupData?.results).map((grp) => (
             <div
-              key={group.id}
+              key={grp.id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
               onClick={() => {
-                setGroup(group);
-                setSelectedGroup(group.name);
+                setGroup(grp);
+                setSelectedGroup(grp.name);
               }}
             >
               {/* Group Header */}
               <div
-                onClick={() => toggleGroup(group.id)}
+                onClick={() => toggleGroup(grp.id)}
                 className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
                     <div className="mt-1">
-                      {expandedGroups.has(group.id) ? (
+                      {expandedGroups.has(grp.id) ? (
                         <ExpandMore className="w-5 h-5 text-slate-600" />
                       ) : (
                         <ChevronRight className="w-5 h-5 text-slate-600" />
@@ -748,29 +802,40 @@ export default function TestPage() {
                         <div>
                           <div className="flex items-center gap-3 mb-2">
                             <h2 className="text-xl font-semibold text-slate-800">
-                              {group.name}
+                              {grp.name}
                             </h2>
                             <span className="px-3 py-1 bg-slate-100 text-slate-600 text-sm rounded-full">
-                              ID: {group.id}
+                              ID: {grp.id}
                             </span>
+                            {showModuleResult && groupReport[grp.id] && (
+                          <div className="ml-2">
+                            <Button
+                              className="!bg-green-700 !text-white"
+                              bgcolor="success.main"
+                              onClick={handleViewModuleResult}
+                            >
+                              View Result
+                            </Button>
+                          </div>
+                        )}
                           </div>
                           <p className="text-slate-600 mb-3">
-                            {group.description}
+                            {grp.description}
                           </p>
                           <div className="flex items-center gap-2 text-sm">
                             <List className="w-4 h-4 text-slate-500" />
                             <span className="text-slate-600">
-                              {group.testcases.length} test case
-                              {group.testcases.length !== 1 ? "s" : ""}
+                              {grp.testcases.length} test case
+                              {grp.testcases.length !== 1 ? "s" : ""}
                             </span>
 
-                            {group?.group_report &&
-                              group?.group_report.trim() !== "" && (
+                            {grp?.group_report &&
+                              grp?.group_report.trim() !== "" && (
                                 <div>
                                   <Button
                                     onClick={() =>
                                       handleViewModuleReport(
-                                        group?.group_report
+                                        grp?.group_report
                                       )
                                     }
                                     className="ml-2"
@@ -782,29 +847,92 @@ export default function TestPage() {
                           </div>
                         </div>
 
-                        {showModuleResult && groupReport[group.id] && (
-                          <div>
-                            <Button
-                              variant="contained"
-                              onClick={handleViewModuleResult}
-                            >
-                              View Result
-                            </Button>
-                          </div>
-                        )}
-                        <div>
+                        <div className="flex gap-2">
                           <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<PlayIcon />}
-                            className="p-1 w-8 md:w-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleGroupRun(group?.id);
+                            endIcon={<KeyboardArrowDown />}
+                            className="w-20 h-[30px] md:h-[50px] cursor-pointer md:w-auto text-xs md:text-md rounded-full px-3 p-2"
+                            onClick={handleActionClick}
+                          >
+                            Action
+                          </Button>
+                          <Menu
+                            anchorEl={anchorEl}
+                            open={open}
+                            onClose={handleClose}
+                            MenuListProps={{
+                              "aria-labelledby": "basic-button",
+                            }}
+                            anchorOrigin={{
+                              vertical: "bottom",
+                              horizontal: "center",
+                            }}
+                            transformOrigin={{
+                              vertical: "top",
+                              horizontal: "center",
+                            }}
+                            slotProps={{
+                              paper: {
+                                sx: {
+                                  boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
+                                  overflow: "visible",
+                                  "&:before": {
+                                    content: '""',
+                                    display: "block",
+                                    position: "absolute",
+                                    top: 0,
+                                    left: "45%",
+                                    height: 10,
+                                    width: 10,
+                                    backgroundColor: "inherit",
+                                    zIndex: -1,
+                                    marginLeft: "0.5px",
+                                    transform: "translateY(-50%) rotate(45deg)",
+                                    boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+                                  },
+                                },
+                              },
                             }}
                           >
-                            {"Run"}
-                          </Button>
+                            {
+                              <Tooltip
+                                title="Edit/Update Module"
+                                placement="right"
+                              >
+                                <MenuItem
+                                  className="!text-[12px]"
+                                  onClick={() => handleEditGroup(group)}
+                                >
+                                  <EditIcon className="pr-2" />
+                                  Edit
+                                </MenuItem>
+                              </Tooltip>
+                            }
+                            {
+                              <Tooltip title="Delete Module" placement="right">
+                                <MenuItem
+                                  className="!text-[12px]"
+                                  onClick={() => handleDeleteGroup(grp?.id)}
+                                >
+                                  <DeleteIcon className="pr-2" />
+                                  Delete
+                                </MenuItem>
+                              </Tooltip>
+                            }
+                          </Menu>
+                          <div className="mt-2">
+                            <Button
+                              size="small"
+                              variant="contained"
+                              startIcon={<PlayIcon />}
+                              className="p-1 w-8 md:w-auto"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGroupRun(grp?.id);
+                              }}
+                            >
+                              {"Run"}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -813,16 +941,16 @@ export default function TestPage() {
               </div>
 
               {/* Test Cases */}
-              {expandedGroups.has(group.id) && (
+              {expandedGroups.has(grp.id) && (
                 <div className="border-t border-slate-200 bg-slate-50">
-                  {group.testcases.length === 0 ? (
+                  {grp.testcases.length === 0 ? (
                     <div className="p-8 text-center text-slate-500">
                       <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
                       <p>No test cases in this group</p>
                     </div>
                   ) : (
                     <div className="p-6 space-y-4">
-                      {group.testcases.map((testcase) => (
+                      {grp.testcases.map((testcase) => (
                         <div
                           key={testcase.id}
                           className="bg-white rounded-lg border border-slate-200 overflow-hidden"
@@ -1530,6 +1658,8 @@ export default function TestPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+       <Group open={mode !== null} mode={mode} currentProject={currentProject} selectedModule={selectedModule} onClose={() => setMode(null)}/>
 
       {/* Snackbar */}
       <Snackbar
