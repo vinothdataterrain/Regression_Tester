@@ -5,20 +5,35 @@ import { logout } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserdata, resetUserdata } from "../features/userSlice";
 import { jwtDecode } from "jwt-decode";
-import { Menu as MenuIcon, Close as CloseIcon, Dataset, Analytics, Article, Terminal, Person, Logout } from '@mui/icons-material';
-import MobileDrawer from './mobileDrawer';
+import {
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  Dataset,
+  Analytics,
+  Article,
+  Terminal,
+  Person,
+  Logout,
+} from "@mui/icons-material";
+import MobileDrawer from "./mobileDrawer";
 import { api } from "../services/api";
 
-const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLogout }) => {
+const MainNavbar = ({
+  user,
+  activeTab,
+  navigationItems,
+  handleTabClick,
+  handleLogout,
+}) => {
   const [anchorEl, setAnchorEl] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const handleMenuClick = () => setAnchorEl(!anchorEl);
   const handleMenuClose = () => setAnchorEl(false);
-  const handleProfile = () =>{
+  const handleProfile = () => {
     navigate("/profile");
     handleMenuClose();
-  }
+  };
   return (
     <>
       {/* Top Navbar */}
@@ -36,7 +51,9 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-base sm:text-lg font-bold">🧪</span>
+                <span className="text-white text-base sm:text-lg font-bold">
+                  🧪
+                </span>
               </div>
               <h4 className="text-xs sm:text-sm md:text-lg lg:text-xl font-semibold text-gray-900 truncate">
                 Test Automator
@@ -47,10 +64,12 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
             <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Hide user info on small screens */}
               <div className="hidden sm:block text-right">
-                <div className="text-sm font-medium text-gray-900">{user?.username }</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {user?.username}
+                </div>
                 <div className="text-xs text-gray-500">{user?.email}</div>
               </div>
-              
+
               <div className="relative">
                 <button
                   onClick={handleMenuClick}
@@ -58,29 +77,37 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                 >
                   <span className="text-gray-600">👤</span>
                 </button>
-                
+
                 {/* Desktop Dropdown */}
                 {anchorEl && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={handleMenuClose}
                     />
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       {/* Show user info on mobile in dropdown */}
                       <div className="sm:hidden px-4 py-2 border-b border-gray-200">
-                        <div className="text-sm font-medium text-gray-900">{user?.username}</div>
-                        <div className="text-xs text-gray-500">{user?.email}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user?.username}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {user?.email}
+                        </div>
                       </div>
-                      
-                       <button
+
+                      <button
                         onClick={handleProfile}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                        className={`w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 ${
+                          location.pathname === "/profile" ? "bg-blue-300" : ""
+                        } `}
                       >
-                        <span><Person/></span>
+                        <span>
+                          <Person />
+                        </span>
                         <span>Profile</span>
                       </button>
-                     {/* <button
+                      {/* <button
                         onClick={handleMenuClose}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                       >
@@ -92,7 +119,9 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
                         onClick={handleLogout}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
                       >
-                        <span><Logout/></span>
+                        <span>
+                          <Logout />
+                        </span>
                         <span>Logout</span>
                       </button>
                     </div>
@@ -112,18 +141,18 @@ const MainNavbar = ({ user, activeTab, navigationItems, handleTabClick, handleLo
               const Icon = item.icon;
               return (
                 <button
-                key={item.id}
-                onClick={() => handleTabClick(item)}
-                className={`p-2 border-b-2 font-medium text-sm shadow rounded transition-colors duration-200 flex items-center space-x-2 ${
-                  activeTab === item.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="text-lg" />
-                <span className="hidden sm:inline">{item.label}</span>
-              </button>
-              )
+                  key={item.id}
+                  onClick={() => handleTabClick(item)}
+                  className={`p-2 border-b-2 font-medium text-sm shadow rounded transition-colors duration-200 flex items-center space-x-2 ${
+                    activeTab === item.id
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon className="text-lg" />
+                  <span className="hidden sm:inline">{item.label}</span>
+                </button>
+              );
             })}
           </div>
         </div>
@@ -146,7 +175,7 @@ const Navbar = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const [userLogout] = useUserLogoutMutation();
 
@@ -159,7 +188,6 @@ const Navbar = () => {
     dispatch(api.util.resetApiState());
     logout({ userLogout, navigate });
   };
-
 
   useEffect(() => {
     const accessToken = localStorage.getItem("access_token");
@@ -182,25 +210,31 @@ const Navbar = () => {
     }
   }, [dispatch, user]);
 
-
   useEffect(() => {
     const path = location.pathname;
+
     if (path === "/dashboard") {
       setActiveTab("dashboard");
-    }
-    if (path === "/projects") {
+    } else if (path.includes("projects")) {
       setActiveTab("projects");
     } else if (path === "/results") {
       setActiveTab("results");
     } else if (path === "/pythonScripts") {
       setActiveTab("pythonScripts");
+    } else {
+      setActiveTab("");
     }
   }, [location.pathname]);
 
   const handleMenuClose = () => setAnchorEl(null);
 
   const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: Analytics, path: "/dashboard" },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: Analytics,
+      path: "/dashboard",
+    },
     { id: "projects", label: "Projects", icon: Dataset, path: "/projects" },
     { id: "results", label: "Results", icon: Article, path: "/results" },
     {
@@ -219,8 +253,13 @@ const Navbar = () => {
   return (
     <div className="min-h-screen w-full  bg-gray-50">
       {/* Navbar */}
-     <MainNavbar user={user} activeTab={activeTab} navigationItems={navigationItems} handleTabClick={handleTabClick} handleLogout={handleLogout}/>
-      
+      <MainNavbar
+        user={user}
+        activeTab={activeTab}
+        navigationItems={navigationItems}
+        handleTabClick={handleTabClick}
+        handleLogout={handleLogout}
+      />
 
       {/* Main Content */}
       {/* <main className="flex-1 bg-gray-50">

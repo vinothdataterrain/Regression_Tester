@@ -37,6 +37,7 @@ import {
   useTheme,
   useMediaQuery,
   Backdrop,
+  Menu,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -59,13 +60,22 @@ import {
   FileDownload,
   ArrowBack as ArrowBackIcon,
   Launch as LaunchIcon,
+  ChevronRight,
+  Description,
+  ExpandMore,
+  PlayArrow,
+  List,
+  KeyboardArrowDown,
 } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import {
   useCreateTestCaseMutation,
+  useDeleteGroupMutation,
   useDeleteTestCaseMutation,
   useEditTestCaseMutation,
+  useGetGroupsQuery,
   useGetProjectbyIdQuery,
+  useRunGroupMutation,
   useRunTestCaseMutation,
 } from "../services/runTestCases.api.services";
 import { convertToPlaywrightFormat } from "../utils/playwrightFormat";
@@ -79,6 +89,10 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import SuccessGradientMessage from "../components/successPopup";
 
+import { SelectBox } from "../components/common/selectBox";
+import Group from "../components/module/addGroup";
+import { CustomPagination } from "../utils/customPagination";
+
 export default function TestPage() {
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -90,6 +104,10 @@ export default function TestPage() {
     severity: "success",
   });
   const [stateOption, setStateOption] = useState(null);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 1,
+    pageSize: 6,
+  });
 
   // Test case states
   const [selectedProject, setSelectedProject] = useState(null);
@@ -102,6 +120,17 @@ export default function TestPage() {
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [testCaseName, setTestCaseName] = useState("");
   const [testCaseReports, setTestCaseReports] = useState({});
+  //group states
+  const [group, setGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const [moduleResult, setModuleResult] = useState(null);
+  const [showModuleResult, setShowModueResult] = useState(false);
+  const [groupReport, setGroupReport] = useState({});
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const [mode, setMode] = useState(null);
+  const [selectedModule, setSelectedModule] = useState(null);
 
   const { success } = useToast();
   const [showBackdrop, setShowBackdrop] = useState(false);
@@ -126,7 +155,33 @@ export default function TestPage() {
   ] = useRunTestCaseMutation();
   const [deleteTestCase] = useDeleteTestCaseMutation();
 
+  const [
+    groupRun,
+    {
+      isSuccess: isGroupRunSuccess,
+      isError: isGroupRunError,
+      error: groupRunError,
+      isLoading: isGroupRunLoading,
+    },
+  ] = useRunGroupMutation();
+
+  const [deleteGroup] = useDeleteGroupMutation();
+
   const { data, isLoading, error } = useGetProjectbyIdQuery(projectId);
+
+  const { data: groupData } = useGetGroupsQuery(
+    {
+      page: paginationModel?.page,
+      limit: paginationModel?.pageSize,
+      id: currentProject?.id,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
+
+  const GroupList =
+    groupData?.results?.map((e) => ({ label: e.name, value: e.id })) || [];
 
   // Set the current project directly from API response
   useEffect(() => {
@@ -146,12 +201,54 @@ export default function TestPage() {
       toast.error(testcaseError?.data?.error || "Failed to run testcase!");
     }
   }, [isTestcaseError, isTestcaseSuccess]);
-
+  useEffect(() => {
+    if (isGroupRunSuccess) {
+      toast.success("Module Testcase Run Successfully!");
+    } else if (isGroupRunError && groupRunError) {
+      toast.error(groupRunError?.error || "Failed to run module!");
+    }
+  }, [isGroupRunSuccess, isGroupRunError]);
   const handleAddTestCase = (project) => {
     setSelectedProject(project);
     setIsAddingTestCase(true);
     setTestCaseName("");
     setTestSteps([{ action: "", field: "", value: "" }]);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: newPage,
+    }));
+  };
+
+  const toggleGroup = (groupId) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const getActionColor = (action) => {
+    const colors = {
+      use: "bg-purple-100 text-purple-700",
+      goto: "bg-blue-100 text-blue-700",
+      click: "bg-green-100 text-green-700",
+      fill: "bg-orange-100 text-orange-700",
+      check: "bg-pink-100 text-pink-700",
+    };
+    return colors[action] || "bg-gray-100 text-gray-700";
+  };
+
+  const handleActionClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   const handleEditTestCase = async (testCase) => {
@@ -267,6 +364,7 @@ export default function TestPage() {
       const data = {
         project: selectedProject.id,
         name: testCaseName,
+        ...(selectedGroup && { group: selectedGroup }),
         steps: [
           ...(stateOption === "use" && currentProject
             ? [{ action: "use", value: `${currentProject.name}.json` }]
@@ -277,6 +375,7 @@ export default function TestPage() {
             value: step.value || "",
             ...(step.url && { url: step.url }),
           })),
+          ...[{ action: "wait", selector: "", value: "5000" }],
           ...(stateOption === "save" && currentProject
             ? [{ action: "save", value: `${currentProject.name}.json` }]
             : []),
@@ -350,6 +449,50 @@ export default function TestPage() {
     }
   };
 
+  const handleAddGroup = () => {
+    setMode("add");
+    setSelectedModule("");
+  };
+  const handleEditGroup = (module) => {
+    setMode("edit");
+    setSelectedModule(module);
+    handleClose();
+  };
+
+  const handleGroupRun = async (groupId) => {
+    try {
+      const ModuleResult = await groupRun({ id: groupId });
+      setModuleResult(ModuleResult);
+      setShowModueResult(true);
+      setGroupReport((prev) => ({
+        ...prev,
+        [groupId]: ModuleResult?.data?.group_report,
+      }));
+    } catch (error) {
+      console.error("error:", error);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    try {
+      await deleteGroup(groupId);
+      handleClose();
+      toast.success("Module deleted!!");
+    } catch (error) {
+      console.error("Error in deleting module: ", error);
+      toast.error("Failed to delete Module!");
+    }
+  };
+
+  const handleViewModuleResult = () => {
+    navigate(`/projects/view-result`, { state: { data: moduleResult } });
+  };
+
+  const handleViewModuleReport = (report_url) => {
+    const group_report_url = `${DOMAIN}/media/${report_url}`;
+    window.open(group_report_url, "_blank");
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) setSelectedFile(file);
@@ -381,11 +524,13 @@ export default function TestPage() {
       const payloadData = {
         project: selectedProject?.id,
         name: testCaseName,
+        ...(selectedGroup && { group: selectedGroup }),
         steps: [
           ...(stateOption === "use" && currentProject
             ? [{ action: "use", value: `${currentProject.name}.json` }]
             : []),
           ...PlaywrightFormat,
+          ...[{ action: "wait", selector: "", value: "5000" }],
           ...(stateOption === "save" && currentProject
             ? [{ action: "save", value: `${currentProject.name}.json` }]
             : []),
@@ -485,22 +630,33 @@ export default function TestPage() {
     <Box className="w-full p-2">
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        open={testcaseLoading}
+        open={testcaseLoading || isGroupRunLoading}
       >
         <CircularProgress color="inherit" />
       </Backdrop>
       {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          onClick={() => navigate("/projects")}
-          sx={{ cursor: "pointer" }}
+      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+          <Link
+            underline="hover"
+            color="inherit"
+            onClick={() => navigate("/projects")}
+            sx={{ cursor: "pointer" }}
+          >
+            Projects
+          </Link>
+          <Typography color="text.primary">{currentProject?.name}</Typography>
+        </Breadcrumbs>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAddGroup}
+          size="small"
+          sx={{ mb: 2 }}
         >
-          Projects
-        </Link>
-        <Typography color="text.primary">{currentProject?.name}</Typography>
-      </Breadcrumbs>
+          Add Module
+        </Button>
+      </Box>
 
       {/* Project Header */}
       <Card elevation={2} sx={{ mb: 4 }}>
@@ -558,7 +714,7 @@ export default function TestPage() {
 
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Chip
-                  label={`${currentProject?.testcases?.length || 0} test cases`}
+                  label={`${currentProject?.groups?.length || 0} modules`}
                   size="small"
                   color="primary"
                   className="!bg-blue-200 !text-blue-500"
@@ -580,7 +736,10 @@ export default function TestPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => handleAddTestCase(currentProject)}
+                onClick={() => {
+                  setSelectedGroup("");
+                  handleAddTestCase(currentProject);
+                }}
                 size="small"
                 className="!min-w-[120px] !bg-blue-700"
               >
@@ -592,6 +751,7 @@ export default function TestPage() {
                   startIcon={<UploadFile />}
                   onClick={() => {
                     setTestCaseName("");
+                    setSelectedGroup("");
                     setIsAddingJson(true);
                     setSelectedProject(currentProject);
                   }}
@@ -606,362 +766,428 @@ export default function TestPage() {
         </CardContent>
       </Card>
 
-      <Divider sx={{ mb: 4 }} />
-
       {/* Test Cases Section */}
-      <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
-        Test Cases ({currentProject?.testcases?.length || 0})
-      </Typography>
+      {groupData?.results?.length > 0 && (
+        <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
+          Modules ({currentProject?.groups?.length || 0})
+        </Typography>
+      )}
 
-      {currentProject?.testcases?.length === 0 ? (
-        <Card elevation={1}>
-          <CardContent sx={{ textAlign: "center", py: 6 }}>
-            <TestIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              No test cases yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first test case to start automated testing for this
-              project
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleAddTestCase(currentProject)}
-              size="large"
-            >
-              Create First Test Case
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {currentProject?.testcases?.map((testCase) => (
-            <Box
-              key={testCase?.id}
-              sx={{
-                width: "100%",
-              }}
-            >
-              <Accordion
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  "&.MuiAccordion-root": {
-                    "&:before": {
-                      display: "none",
-                    },
-                  },
+      <Box>
+        <div className="grid gap-6">
+          {groupData?.results?.length > 0 ? (
+            groupData?.results?.map((grp) => (
+              <div
+                key={grp.id}
+                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+                onClick={() => {
+                  setGroup(grp);
+                  setSelectedGroup(grp.name);
                 }}
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{
-                    minHeight: 64,
-                    "&.Mui-expanded": {
-                      minHeight: 64,
-                    },
-                  }}
+                {/* Group Header */}
+                <div
+                  onClick={() => toggleGroup(grp.id)}
+                  className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Box
-                    className="flex flex-col md:flex-row items-start justify-start md:justify-between"
-                    sx={{
-                      alignItems: "center",
-                      width: "100%",
-                      minHeight: 40,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Typography
-                      variant="h6"
-                      className=" w-full md:w-auto"
-                      sx={{
-                        flexGrow: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        pr: 1,
-                      }}
-                      title={testCase?.name}
-                    >
-                      {testCase?.name}
-                    </Typography>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="mt-1">
+                        {expandedGroups.has(grp.id) ? (
+                          <ExpandMore className="w-5 h-5 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-slate-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h2 className="text-xl font-semibold text-slate-800">
+                                {grp.name}
+                              </h2>
+                              <span className="px-3 py-1 bg-slate-100 text-slate-600 text-sm rounded-full">
+                                ID: {grp.id}
+                              </span>
+                              {showModuleResult && groupReport[grp.id] && (
+                                <div className="ml-2">
+                                  <Button
+                                    className="!bg-green-700 !text-white"
+                                    bgcolor="success.main"
+                                    onClick={handleViewModuleResult}
+                                  >
+                                    View Result
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-slate-600 mb-3">
+                              {grp.description}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm">
+                              <List className="w-4 h-4 text-slate-500" />
+                              <span className="text-slate-600">
+                                {grp.testcases.length} test case
+                                {grp.testcases.length !== 1 ? "s" : ""}
+                              </span>
 
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mr: 2,
-                      }}
-                    >
-                      {testCaseReports[testCase.id] && !uploadedFile && (
-                        <Tooltip title="Download HTML Report">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadReport(testCase.id);
-                            }}
-                            color="primary"
+                              {grp?.group_report &&
+                                grp?.group_report.trim() !== "" && (
+                                  <div>
+                                    <Button
+                                      onClick={() =>
+                                        handleViewModuleReport(
+                                          grp?.group_report
+                                        )
+                                      }
+                                      className="ml-2"
+                                    >
+                                      Report
+                                    </Button>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              endIcon={<KeyboardArrowDown />}
+                              className="w-20 h-[30px] md:h-[50px] cursor-pointer md:w-auto text-xs md:text-md rounded-full px-3 p-2"
+                              onClick={handleActionClick}
+                            >
+                              Action
+                            </Button>
+                            <Menu
+                              anchorEl={anchorEl}
+                              open={open}
+                              onClose={handleClose}
+                              MenuListProps={{
+                                "aria-labelledby": "basic-button",
+                              }}
+                              anchorOrigin={{
+                                vertical: "bottom",
+                                horizontal: "center",
+                              }}
+                              transformOrigin={{
+                                vertical: "top",
+                                horizontal: "center",
+                              }}
+                              slotProps={{
+                                paper: {
+                                  sx: {
+                                    boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
+                                    overflow: "visible",
+                                    "&:before": {
+                                      content: '""',
+                                      display: "block",
+                                      position: "absolute",
+                                      top: 0,
+                                      left: "45%",
+                                      height: 10,
+                                      width: 10,
+                                      backgroundColor: "inherit",
+                                      zIndex: -1,
+                                      marginLeft: "0.5px",
+                                      transform:
+                                        "translateY(-50%) rotate(45deg)",
+                                      boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+                                    },
+                                  },
+                                },
+                              }}
+                            >
+                              {
+                                <Tooltip
+                                  title="Edit/Update Module"
+                                  placement="right"
+                                >
+                                  <MenuItem
+                                    className="!text-[12px]"
+                                    onClick={() => handleEditGroup(group)}
+                                  >
+                                    <EditIcon className="pr-2" />
+                                    Edit
+                                  </MenuItem>
+                                </Tooltip>
+                              }
+                              {
+                                <Tooltip
+                                  title="Delete Module"
+                                  placement="right"
+                                >
+                                  <MenuItem
+                                    className="!text-[12px]"
+                                    onClick={() => handleDeleteGroup(grp?.id)}
+                                  >
+                                    <DeleteIcon className="pr-2" />
+                                    Delete
+                                  </MenuItem>
+                                </Tooltip>
+                              }
+                            </Menu>
+                            <div className="mt-2">
+                              <Button
+                                size="small"
+                                variant="contained"
+                                startIcon={<PlayIcon />}
+                                className="p-1 w-8 md:w-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGroupRun(grp?.id);
+                                }}
+                              >
+                                {"Run"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test Cases */}
+                {expandedGroups.has(grp.id) && (
+                  <div className="border-t border-slate-200 bg-slate-50">
+                    {grp.testcases.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500">
+                        <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                        <p>No test cases in this group</p>
+                      </div>
+                    ) : (
+                      <div className="p-6 space-y-4">
+                        {grp.testcases.map((testcase) => (
+                          <div
+                            key={testcase.id}
+                            className="bg-white rounded-lg border border-slate-200 overflow-hidden"
                           >
-                            <FileDownload />
-                          </IconButton>
-                        </Tooltip>
-                      )}
+                            {/* Test Case Header */}
+                            <div
+                              onClick={() =>
+                                setSelectedTestCase(
+                                  selectedTestCase === testcase.id
+                                    ? null
+                                    : testcase.id
+                                )
+                              }
+                              className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <PlayArrow className="w-5 h-5 text-emerald-600" />
+                                  <div>
+                                    <h3 className="font-semibold text-slate-800">
+                                      {testcase.name}
+                                    </h3>
+                                    <p className="text-sm text-slate-500">
+                                      {testcase.steps.length} steps • Created{" "}
+                                      {new Date(
+                                        testcase.created_at
+                                      ).toLocaleDateString()}
+                                    </p>
 
-                      <Tooltip title="Upload CSV or Excel file">
-                        <Button
-                          variant="outlined"
-                          startIcon={<UploadFile />}
-                          onClick={() => fileInputRef.current?.click()}
-                          //className="rounded-full min-w-4 mx-auto md:rounded-md"
-                        >
-                          {isMdscreen && "Upload Data"}
-                          <input
-                            type="file"
-                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                            ref={fileInputRef}
-                            style={{ display: "none" }}
-                            onChange={handleExcelUpload}
-                          />
-                        </Button>
-                      </Tooltip>
+                                    <Box>
+                                      {testCaseReports[testcase.id] &&
+                                        !uploadedFile && (
+                                          <Tooltip title="Download HTML Report">
+                                            <IconButton
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDownloadReport(
+                                                  testcase.id
+                                                );
+                                              }}
+                                              color="primary"
+                                            >
+                                              <FileDownload />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      <Tooltip title="Upload CSV or Excel file">
+                                        <Button
+                                          variant="outlined"
+                                          startIcon={<UploadFile />}
+                                          onClick={() =>
+                                            fileInputRef.current?.click()
+                                          }
+                                          //className="rounded-full min-w-4 mx-auto md:rounded-md"
+                                        >
+                                          {isMdscreen && "Upload Data"}
+                                          <input
+                                            type="file"
+                                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                            ref={fileInputRef}
+                                            style={{ display: "none" }}
+                                            onChange={handleExcelUpload}
+                                          />
+                                        </Button>
+                                      </Tooltip>
+                                      <Tooltip title="Edit Test Case">
+                                        <IconButton
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProject(currentProject);
+                                            setSelectedTestCase(testcase);
+                                            setTestCaseName(testcase.name);
+                                            setTestSteps(
+                                              testcase.steps.map((step) => ({
+                                                action: step.action || "",
+                                                field:
+                                                  step.action === "goto"
+                                                    ? step.url || ""
+                                                    : step.selector || "",
+                                                value: step.value || "",
+                                                url: step.url || "", // Add URL field for goto actions
+                                              }))
+                                            );
+                                            setIsEditingTestCase(true);
+                                          }}
+                                          className="rounded-full border"
+                                        >
+                                          <EditIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Delete Test Case">
+                                        <IconButton
+                                          onClick={() =>
+                                            handleDeleteTestcase(testcase)
+                                          }
+                                          color="error"
+                                        >
+                                          <DeleteIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        startIcon={
+                                          runningTests.has(
+                                            `${currentProject?.id}-${testcase?.id}`
+                                          ) ? (
+                                            <CircularProgress
+                                              size={16}
+                                              color="inherit"
+                                            />
+                                          ) : (
+                                            <PlayIcon />
+                                          )
+                                        }
+                                        className="p-1 w-8 md:w-auto"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRunTestCase(
+                                            currentProject,
+                                            testcase
+                                          );
+                                        }}
+                                      >
+                                        {isMdscreen &&
+                                          (runningTests.has(
+                                            `${currentProject?.id}-${testcase?.id}`
+                                          )
+                                            ? "Running..."
+                                            : "Run")}
+                                      </Button>
+                                    </Box>
+                                  </div>
+                                </div>
+                                {selectedTestCase === testcase.id ? (
+                                  <ExpandMore className="w-5 h-5 text-slate-600" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-slate-600" />
+                                )}
+                              </div>
+                            </div>
 
-                      <Tooltip title="Edit Test Case">
-                        <IconButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProject(currentProject);
-                            setSelectedTestCase(testCase);
-                            setTestCaseName(testCase.name);
-                            setTestSteps(
-                              testCase.steps.map((step) => ({
-                                action: step.action || "",
-                                field:
-                                  step.action === "goto"
-                                    ? step.url || ""
-                                    : step.selector || "",
-                                value: step.value || "",
-                                url: step.url || "", // Add URL field for goto actions
-                              }))
-                            );
-                            setIsEditingTestCase(true);
-                          }}
-                          className="rounded-full border"
-                        >
-                          <EditIcon />
-                        </IconButton>
-
-                        <IconButton
-                          onClick={() => handleDeleteTestcase(testCase)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        {testCase?.status === "passed" && (
-                          <CheckCircleIcon color="success" />
-                        )}
-                        {testCase?.status === "failed" && (
-                          <ErrorIcon color="error" />
-                        )}
-
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={
-                            runningTests.has(
-                              `${currentProject?.id}-${testCase?.id}`
-                            ) ? (
-                              <CircularProgress size={16} color="inherit" />
-                            ) : (
-                              <PlayIcon />
-                            )
-                          }
-                          className="p-1 w-8 md:w-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRunTestCase(currentProject, testCase);
-                          }}
-                        >
-                          {isMdscreen &&
-                            (runningTests.has(
-                              `${currentProject?.id}-${testCase?.id}`
-                            )
-                              ? "Running..."
-                              : "Run")}
-                        </Button>
-                      </Box>
-                    </Box>
-                  </Box>
-                </AccordionSummary>
-
-                <AccordionDetails
-                  sx={{
-                    flexGrow: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    pt: 2,
-                  }}
-                >
-                  {uploadedFile && (
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      Uploaded File: {uploadedFile.name}
-                    </Alert>
-                  )}
-
-                  <Typography
-                    variant="subtitle2"
-                    gutterBottom
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Test Steps ({testCase.steps.length}):
-                  </Typography>
-
-                  <Box sx={{ maxHeight: 300, overflowY: "auto", mb: 2 }}>
-                    {testCase.steps.map((step, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          minHeight: 60,
-                          gap: 1.5,
-                          mb: 1,
-                          p: 1.5,
-                          bgcolor: "grey.50",
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "grey.200",
-                          "&:last-child": {
-                            mb: 0,
-                          },
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            minWidth: 30,
-                            minHeight: 30,
-                            color: "primary.main",
-                            fontWeight: "bold",
-                            textAlign: "center",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {idx + 1}
-                        </Typography>
-
-                        <Chip
-                          label={step.action}
-                          size="small"
-                          color="primary"
-                          sx={{
-                            minWidth: 70,
-                            fontSize: "0.7rem",
-                            height: 30,
-                          }}
-                        />
-
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontFamily: "monospace",
-                            bgcolor: "white",
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 0.5,
-                            border: "1px solid",
-                            borderColor: "grey.300",
-                            flexGrow: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            fontSize: "0.7rem",
-                          }}
-                          title={step.selector || step.field}
-                        >
-                          {step.selector || step.field}
-                        </Typography>
-
-                        {step.value && (
-                          <Typography
-                            variant="caption"
-                            color="success.main"
-                            sx={{
-                              fontFamily: "monospace",
-                              fontWeight: "medium",
-                              fontSize: "0.7rem",
-                              maxWidth: 100,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                            title={step.value}
-                          >
-                            "{step.value}"
-                          </Typography>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-
-                  {testCase.result && (
-                    <Box
-                      sx={{
-                        mt: 3,
-                        p: 2,
-                        bgcolor:
-                          testCase.status === "passed"
-                            ? "success.light"
-                            : "error.light",
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          mb: 1,
-                        }}
-                      >
-                        <Typography variant="subtitle2" gutterBottom>
-                          Test Result:
-                        </Typography>
-                        {testCaseReports[testCase.id] && !uploadedFile && (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<FileDownload />}
-                            onClick={() => handleDownloadReport(testCase.id)}
-                            sx={{ ml: 2 }}
-                          >
-                            Download Report
-                          </Button>
-                        )}
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {testCase.result.message || "Test completed"}
-                      </Typography>
-                      {testCase.lastRun && (
-                        <Typography variant="caption" color="text.secondary">
-                          Run at: {new Date(testCase.lastRun).toLocaleString()}
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </AccordionDetails>
-              </Accordion>
+                            {/* Test Steps */}
+                            {selectedTestCase === testcase.id && (
+                              <div className="border-t border-slate-200 bg-slate-50 p-4">
+                                <div className="space-y-3">
+                                  {testcase.steps.map((step) => (
+                                    <div
+                                      key={step.step_number}
+                                      className="bg-white rounded-lg p-4 border border-slate-200"
+                                    >
+                                      <div className="flex items-start gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                          {step.step_number}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span
+                                              className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(
+                                                step.action
+                                              )}`}
+                                            >
+                                              {step.action.toUpperCase()}
+                                            </span>
+                                          </div>
+                                          {step.selector && (
+                                            <div className="mb-2">
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                Selector:
+                                              </span>
+                                              <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700 break-all">
+                                                {step.selector}
+                                              </code>
+                                            </div>
+                                          )}
+                                          {step.value && (
+                                            <div className="mb-2">
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                Value:
+                                              </span>
+                                              <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                                {step.value}
+                                              </code>
+                                            </div>
+                                          )}
+                                          {step.url && (
+                                            <div>
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                URL:
+                                              </span>
+                                              <a
+                                                href={step.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="ml-2 text-sm text-blue-600 hover:text-blue-800 break-all"
+                                              >
+                                                {step.url}
+                                              </a>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <Box className="text-center text-slate-500">
+              <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+              <p>No Modules in this group</p>
             </Box>
-          ))}
-        </Box>
-      )}
+          )}
+        </div>
+        <div className="my-4">
+          <CustomPagination
+            totalItems={groupData?.count || 0}
+            pageSize={paginationModel.pageSize}
+            currentPage={paginationModel.page}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      </Box>
 
       {/* Add Test Case Dialog - Enhanced with Better Guidance */}
       <Dialog
@@ -994,6 +1220,16 @@ export default function TestPage() {
               placeholder="e.g., User Login Flow Test"
               sx={{ mb: 3 }}
             />
+
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ mb: 1 }}>Assign To Module</Typography>
+              <SelectBox
+                value={selectedGroup}
+                placeholder={GroupList?.length > 0 ? "Select Module" : "No Module Found"}
+                menuList={GroupList}
+                handleChange={(e) => setSelectedGroup(e.target.value)}
+              />
+            </Box>
 
             <Typography variant="h6" gutterBottom>
               Test Steps
@@ -1338,15 +1574,27 @@ export default function TestPage() {
             placeholder="Enter Testcase Title"
             sx={{ mb: 2 }}
           />
-          <Button variant="contained" component="label" sx={{ mt: 2 }}>
-            Select JSON File
-            <input
-              type="file"
-              accept=".json"
-              hidden
-              onChange={handleFileSelect}
-            />
-          </Button>
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Button variant="contained" component="label" sx={{ mt: 2 }}>
+              Select JSON File
+              <input
+                type="file"
+                accept=".json"
+                hidden
+                onChange={handleFileSelect}
+              />
+            </Button>
+            <Box>
+              <Typography>Assign To Module</Typography>
+              <SelectBox
+                value={selectedGroup}
+                placeholder={GroupList?.length > 0 ? "Select Module" : "No Module Found"}
+                menuList={GroupList}
+                handleChange={(e) => setSelectedGroup(e.target.value)}
+              />
+            </Box>
+          </Box>
+
           {selectedFile && (
             <Typography sx={{ mt: 1 }}>
               Selected file: {selectedFile.name}
@@ -1424,6 +1672,14 @@ export default function TestPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Group
+        open={mode !== null}
+        mode={mode}
+        currentProject={currentProject}
+        selectedModule={selectedModule}
+        onClose={() => setMode(null)}
+      />
 
       {/* Snackbar */}
       <Snackbar

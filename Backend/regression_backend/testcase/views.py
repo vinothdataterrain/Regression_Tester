@@ -3,11 +3,11 @@ from rest_framework.views import APIView
 from .models import Team
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult, TestRunReport
+from .models import Project, TestCase, TestStep, ScriptProject, ScriptCase,ScriptResult, TestRunReport, Group
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer
+from .serializers import ProjectSerializer, TestCaseSerializer, ScriptProjectSerializer,ScriptCaseSerializer, TestActionLogSerializer,TeamMemberSerializer, GroupSerializer
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.db.models import Count, Avg
@@ -26,6 +26,7 @@ import uuid
 from django.conf import settings
 from datetime import datetime
 from .utils import generate_html_report
+from .tests import generate_group_report
 from .models import TestActionLog
 from .utils import SetPagination
 from django.contrib.auth.models import User
@@ -178,9 +179,11 @@ class SummaryView(APIView):
         if not team:
             return Response({"detail": "User is not assigned to any team."}, status=400)
         projects = Project.objects.filter(team=team)
+        modules = Group.objects.filter(project__team=team)
         testcases = TestCase.objects.filter(project__team=team)
         teststeps = TestStep.objects.filter(testcase__project__team=team)
         project_count = projects.count()
+        module_count = modules.count()
         testcase_count = testcases.count()
         teststeps_count = teststeps.count()
    
@@ -189,6 +192,7 @@ class SummaryView(APIView):
 
         data = {
             "totalProjects" : project_count,
+            "totalModules" : module_count,
             "totalTestCases" : testcase_count,
             "totalTestSteps" : teststeps_count,
             "avgSteps" : round(avg_steps, 1)
@@ -200,6 +204,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
     queryset = TestCase.objects.all()
     serializer_class = TestCaseSerializer
     permission_classes = [AllowAny]
+    pagination_class = SetPagination
 
     # --- API Endpoint ---
     @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
@@ -265,8 +270,14 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         """
         Poll latest background TestRun status for a testcase.
         """
+        user = request.user
+        team = Team.objects.filter(members=user).first()
+        projects = Project.objects.filter(team=team)
+
+        if not team:
+            return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
         data = []
-        testcases = TestCase.objects.all()
+        testcases = TestCase.objects.filter(project__in=projects).order_by('-id')
 
         for testcase in testcases:
             latest_run = testcase.runs.order_by("-created_at").first()
@@ -280,6 +291,10 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     "result_file": latest_run.result_file.url if latest_run.result_file else None,
                 })
 
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+
         return Response(data)
   
     @action(detail=False, methods=["get"], url_path="reports")
@@ -289,7 +304,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         if not team:
             return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
         projects = Project.objects.filter(team=team)
-        testcases = TestCase.objects.filter(project__in=projects)
+        testcases = TestCase.objects.filter(project__in=projects).order_by('-id')
         data = []
         for testcase in testcases:
             latest_report = TestRunReport.objects.filter(testcase=testcase).order_by("-created_at").first()
@@ -302,6 +317,10 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     "report": latest_report.report.url if latest_report.report else None,
                     "created_at": latest_report.created_at,
                 })
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -311,6 +330,90 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         return Response({ "message": "Testcase deleted successfully"},
         status=status.HTTP_200_OK
     )
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    pagination_class = SetPagination
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            return self.queryset.filter(project_id=project_id)
+        return self.queryset
+    
+    @action(detail=True, methods=["post"], url_path="run")
+    def run_group(self, request, pk=None):
+        try:
+            group = self.get_object()
+            testcases = group.testcases.all()
+
+            if not testcases.exists():
+                return Response({"detail": "No testcases under this group."}, status=status.HTTP_404_NOT_FOUND)
+
+            results = []
+            passed_count = 0
+            failed_count = 0
+            for testcase in testcases:
+                import asyncio
+                # get all steps
+                steps = list(testcase.steps.all().values())
+                
+                # Create new asyncio loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                # Run each testcase
+                res = loop.run_until_complete(run_testcase_async(steps))
+                loop.close()
+                
+                report_path = generate_html_report(testcase.id, res)
+
+                testcase_status = "passed"
+                for step in res:
+                    if step.get("status") == "failed":
+                        testcase_status = "failed"
+                        break
+                if testcase_status == "passed":
+                    passed_count += 1
+                
+                else:
+                    failed_count += 1
+            
+                results.append({
+                    "testcase_id": testcase.id,
+                    "testcase_name": testcase.name,
+                    "status" : testcase_status,
+                    "result": res,
+                    "report": report_path,
+                })
+
+            # Determine overall group status
+            overall_status = "passed" if failed_count == 0 else "failed"
+
+
+            group_report_path = generate_group_report(
+                    group_name=group.name,
+                    total_tests=len(results),
+                    passed=passed_count,
+                    failed=failed_count,
+                    results=results
+                )
+
+            return Response({
+                "group_id": group.id,
+                "group_name": group.name,
+                "total_testcases": len(results),
+                "status":overall_status,
+                "passed": passed_count,
+                "failed": failed_count,
+                "group_report": group_report_path,
+                "results": results
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class UserTeamsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -578,8 +681,19 @@ class PlaywrightRunView(APIView):
 
 
 class ScriptProjectViewSet(viewsets.ModelViewSet):
-    queryset = ScriptProject.objects.all()
+    # queryset = ScriptProject.objects.all()
     serializer_class = ScriptProjectSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+    
+        if user.is_superuser:
+            return ScriptProject.objects.all()
+
+        return ScriptProject.objects.filter(user=user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["post"], url_path="add-script")
     def add_script(self, request, pk=None):
@@ -592,8 +706,16 @@ class ScriptProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
    
 class ScriptCaseViewSet(viewsets.ModelViewSet):
-    queryset = ScriptCase.objects.all()
+    # queryset = ScriptCase.objects.all()
     serializer_class = ScriptCaseSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return ScriptCase.objects.all()
+
+        return ScriptCase.objects.filter(project__user=user)
 
     @action(detail=True, methods=["post"], url_path="run")
     def run_script(self, request, pk=None):

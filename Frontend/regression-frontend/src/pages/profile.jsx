@@ -71,7 +71,7 @@ export default function Profile() {
         <div className="flex">
           {" "}
           <span className="inline-block px-4 h-8 w-max py-1.5 border border-blue-200 text-sm font-medium text-blue-700 bg-blue-100 dark:bg-blue-800 dark:text-blue-200 rounded-3xl shadow-sm">
-            {profile.role}
+            {profile?.role}
           </span>
           {!edit && (
             <div className="mx-2 border border-blue-200 bg-blue-100 rounded-full p-1.5 w-8 h-8 flex items-center justify-center">
@@ -83,9 +83,9 @@ export default function Profile() {
       {/* Profile Section */}
       {!edit && (
         <div className="flex items-center shadow-md bg-gray-50/80 rounded-xl p-3 gap-6">
-          {profile.avatar ? (
+          {profile?.avatar ? (
             <img
-              src={profile.avatar || "/default-avatar.png"}
+              src={profile?.avatar || "/default-avatar.png"}
               className="w-28 h-28 rounded-full object-cover border-4 border-blue-500 shadow-md hover:scale-105 transition-transform"
               alt="avatar"
             />
@@ -97,13 +97,13 @@ export default function Profile() {
 
           <div className="space-y-2">
             <p className="text-xl font-semibold text-gray-900 dark:text-white">
-              {profile.username}
+              {profile?.username}
             </p>
             <p className="text-gray-500 flex items-center gap-2">
               <span className="material-icons text-sm flex items-center">
                 <Email className="size-0.5 mr-1 text-blue-500" /> Email:{" "}
               </span>{" "}
-              {profile.email}
+              {profile?.email}
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function Profile() {
                 <TextSnippet className="w-4 h-4 mr-2 text-blue-600" /> Bio
               </label>
               <p className="text-gray-800 dark:text-gray-300">
-                {profile.bio || "—"}
+                {profile?.bio || "—"}
               </p>
             </div>
 
@@ -124,7 +124,7 @@ export default function Profile() {
                 <Phone className="w-4 h-4 mr-2 text-blue-600" /> Phone
               </label>
               <p className="text-gray-800 dark:text-gray-300">
-                {profile.phone || "—"}
+                {profile?.phone || "—"}
               </p>
             </div>
 
@@ -134,7 +134,7 @@ export default function Profile() {
                 Joined
               </label>
               <p className="text-gray-600 dark:text-gray-400">
-                {new Date(profile.created_at).toLocaleDateString()}
+                {new Date(profile?.created_at).toLocaleDateString()}
               </p>
             </div>
           </div>

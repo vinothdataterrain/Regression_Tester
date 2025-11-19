@@ -1,6 +1,6 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import ProjectViewSet,UserTeamsView, TestCaseViewSet, SummaryView, PlaywrightRunView,ScriptProjectViewSet,ScriptCaseViewSet,RecentActionsViewSet,AddTeamMemberView,TeamMembersView
+from .views import ProjectViewSet,UserTeamsView, TestCaseViewSet, SummaryView, PlaywrightRunView,ScriptProjectViewSet,ScriptCaseViewSet,RecentActionsViewSet,AddTeamMemberView,TeamMembersView, GroupViewSet
 
 # Router automatically generates /projects/ and /testcases/ endpoints
 router = DefaultRouter()
@@ -9,6 +9,7 @@ router.register(r'script-case',ScriptCaseViewSet,basename='scriptcase')
 router.register(r'projects', ProjectViewSet, basename='project')
 router.register(r'testcases', TestCaseViewSet, basename='testcase')
 router.register(r'recent-actions',RecentActionsViewSet, basename='recent-actions')
+router.register(r'groups', GroupViewSet, basename='groups')
 
 urlpatterns = [
     path('', include(router.urls)),

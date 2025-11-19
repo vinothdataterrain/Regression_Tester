@@ -19,7 +19,7 @@ import {
 export default function ProjectCard(project) {
   const navigate = useNavigate();
   const Project = project?.project;
-  const testCaseCount = Project?.testcases?.length || 0;
+  const moduleCount = Project?.groups?.length || 0;
   
   return (
     <Box sx={{ 
@@ -141,10 +141,10 @@ export default function ProjectCard(project) {
               }} 
             />
             <Chip
-              label={`${testCaseCount} Test Case${testCaseCount !== 1 ? 's' : ''}`}
+              label={`${moduleCount} Modules${moduleCount !== 1 ? 's' : ''}`}
               size="small"
-              color={testCaseCount > 0 ? 'success' : 'default'}
-              variant={testCaseCount > 0 ? 'filled' : 'outlined'}
+              color={moduleCount > 0 ? 'success' : 'default'}
+              variant={moduleCount > 0 ? 'filled' : 'outlined'}
               sx={{ 
                 fontWeight: 500,
                 fontSize: { xs: '0.7rem', sm: '0.75rem' },

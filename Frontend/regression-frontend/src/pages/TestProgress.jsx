@@ -41,16 +41,30 @@ const TestCaseProgress = () => {
   const { id } = useParams();
   const [formattedRow, setFormattedRow] = useState(null);
   const [formattedReportRow, setFormattedReportRow] = useState(null);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 5,
+  });
+  const [resultsPagination, setResultsPagination] = useState({
+    page: 0,
+    pageSize: 5,
+  });
 
   // Keep track if toast has been shown
   const toastShown = useRef(false);
   const [polling, setPolling] = useState(true);
 
   const { data: ReportsData, isLoading: isReportsLoading } =
-    useGetAllReportsQuery({}, {refetchOnMountOrArgChange : true});
+    useGetAllReportsQuery(
+      { page: paginationModel?.page + 1, limit: paginationModel?.pageSize },
+      { refetchOnMountOrArgChange: true }
+    );
 
   const { data: ResultData, isLoading: isResultsLoading } =
-    useGetAllTaskStatusQuery({}, {refetchOnMountOrArgChange : true});
+    useGetAllTaskStatusQuery(
+      { page: resultsPagination?.page + 1, limit: resultsPagination?.pageSize },
+      { refetchOnMountOrArgChange: true }
+    );
 
   const { data } = useGetTaskStatusQuery(id, {
     skip: !id,
@@ -59,14 +73,14 @@ const TestCaseProgress = () => {
 
   useEffect(() => {
     if (ResultData) {
-      const FormattedRowData = formatTableNullValues(ResultData);
+      const FormattedRowData = formatTableNullValues(ResultData?.results);
       setFormattedRow(FormattedRowData);
     }
   }, [ResultData]);
 
   useEffect(() => {
     if (ReportsData) {
-      const FormattedReportData = formatTableNullValues(ReportsData);
+      const FormattedReportData = formatTableNullValues(ReportsData?.results);
       setFormattedReportRow(FormattedReportData);
     }
   }, [ReportsData]);
@@ -474,13 +488,16 @@ const TestCaseProgress = () => {
               mb: 3,
             }}
           >
-            <Tooltip title="View detailed HTML reports for each test case run" placement="right">
-            <Typography variant="h5" component="h2">
-              {"Test Case Execution Reports (HTML)"}
-            </Typography>
+            <Tooltip
+              title="View detailed HTML reports for each test case run"
+              placement="right"
+            >
+              <Typography variant="h5" component="h2">
+                {"Test Case Execution Reports (HTML)"}
+              </Typography>
             </Tooltip>
             <Chip
-              label={`${ReportsData?.length || 0} Reports`}
+              label={`${ReportsData?.count || 0} Reports`}
               color="primary"
               variant="outlined"
             />
@@ -496,11 +513,15 @@ const TestCaseProgress = () => {
               <CircularProgress />
               <Typography sx={{ ml: 2 }}>Loading reports...</Typography>
             </Box>
-          ) : ReportsData && ReportsData.length > 0 ? (
+          ) : ReportsData && ReportsData?.results?.length > 0 ? (
             <DataGrid
               getRowId={(res) => res.testcase_id}
               rows={formattedReportRow}
+              rowCount={ReportsData?.count ?? 0}
               columns={ReportTableColumns}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              paginationMode="server"
             />
           ) : (
             <Box
@@ -523,7 +544,7 @@ const TestCaseProgress = () => {
         </CardContent>
       </Card>
 
-      <Card elevation={2} sx={{ mt : 4}}>
+      <Card elevation={2} sx={{ mt: 4 }}>
         <CardContent>
           <Box
             sx={{
@@ -543,7 +564,7 @@ const TestCaseProgress = () => {
             </Tooltip>
 
             <Chip
-              label={`${ResultData?.length || 0} Results`}
+              label={`${ResultData?.count || 0} Reports`}
               color="primary"
               variant="outlined"
             />
@@ -559,11 +580,15 @@ const TestCaseProgress = () => {
               <CircularProgress />
               <Typography sx={{ ml: 2 }}>Loading results...</Typography>
             </Box>
-          ) : ResultData && ResultData.length > 0 ? (
+          ) : ResultData && ResultData?.results?.length > 0 ? (
             <DataGrid
               getRowId={(res) => res.testcase_id}
               rows={formattedRow}
               columns={ResultTableColumns}
+              rowCount={ResultData?.count ?? 0}
+              paginationModel={resultsPagination}
+              onPaginationModelChange={setResultsPagination}
+              paginationMode="server"
             />
           ) : (
             <Box
@@ -585,7 +610,6 @@ const TestCaseProgress = () => {
           )}
         </CardContent>
       </Card>
-      
     </Container>
   );
 };

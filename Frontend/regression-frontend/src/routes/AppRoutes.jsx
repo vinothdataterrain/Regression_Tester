@@ -9,6 +9,7 @@ import TestCaseProgress from "../pages/TestProgress";
 import Project from "../pages/projects";
 import SignUpPage from "../pages/signUp";
 import Profile from "../pages/profile";
+import ModuleResult from "../components/module/viewResult";
 
 export default function AppRoutes() {
   const PrivateRoute = () => {
@@ -43,6 +44,7 @@ export default function AppRoutes() {
           <Route path="/results/:id" element={<TestCaseProgress />} />
           <Route path="/pythonScripts" element={<PythonExecutor />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/projects/view-result" element={<ModuleResult />} />
         </Route>
       </Route>
     </Routes>

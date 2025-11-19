@@ -1,7 +1,9 @@
 from rest_framework import serializers
-from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult, TestActionLog
+from .models import Project, TestCase, TestStep, ScriptCase,ScriptProject, ScriptResult, TestActionLog, Group
 from rest_framework.fields import CurrentUserDefault
 from django.contrib.auth.models import User
+import os
+from django.conf import settings
 
 class TeamMemberSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,7 +27,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
     steps = TestStepSerializer(many=True)  # fetch steps for GET
     class Meta:
         model = TestCase
-        fields = ["id", "project", "name", "created_at","steps"]
+        fields = ["id", "project", "group", "name", "created_at","steps"]
 
     def create(self, validated_data):
         steps_data = validated_data.pop("steps", [])
@@ -57,15 +59,38 @@ class TestCaseSerializer(serializers.ModelSerializer):
         rep['steps'] = TestStepSerializer(instance.steps.all().order_by('order'), many=True).data
         return rep
     
-    
 
-class ProjectSerializer(serializers.ModelSerializer):
+class GroupSerializer(serializers.ModelSerializer):
+    group_report = serializers.SerializerMethodField()
     testcases = TestCaseSerializer(many=True, read_only=True)
+    class Meta:
+        model = Group
+        fields = ["id", "project", "name", "description", "testcases", "group_report"]
+
+    def get_group_report(self, obj):
+        # If your group report files are named consistently, e.g. group_report_<groupname>...
+        reports_dir = os.path.join(settings.MEDIA_ROOT, "reports")
+        prefix = f"group_report_{obj.name.replace(' ', '_')}_"
+        
+        # Look for existing reports for this group
+        matching_reports = [
+            f for f in os.listdir(reports_dir) if f.startswith(prefix)
+        ] if os.path.exists(reports_dir) else []
+
+        if matching_reports:
+            # Return the most recent report
+            latest_report = sorted(matching_reports)[-1]
+            return f"reports/{latest_report}"
+        return ""
+
+    
+class ProjectSerializer(serializers.ModelSerializer):
+    groups = GroupSerializer(many=True, read_only=True)
     # user = serializers.HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Project
-        fields = ["id", "name", "url", "description", "created_at", "testcases"]
+        fields = ["id", "name", "url", "description", "created_at", "groups"]
         read_only_fields = ["testcases", "created_at", "team"]
 
 class ScriptResultSerializer(serializers.ModelSerializer):
