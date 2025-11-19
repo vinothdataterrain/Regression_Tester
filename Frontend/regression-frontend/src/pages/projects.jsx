@@ -39,6 +39,7 @@ import {
   ViewList,
   GridView,
   Close,
+  Description,
 } from "@mui/icons-material";
 import MoreIcon from "../assets/icons/moreiconRed.svg";
 import ViewIcon from "../assets/images/view1x.png";
@@ -55,7 +56,13 @@ const ModuleChips = ({ groups }) => {
   return (
     <div className="w-full items-center h-full">
       {groups?.length === 0 && (
-        <Typography sx={{ alignContent: "center", textAlign: "start", fontWeight: "bold"}}>
+        <Typography
+          sx={{
+            alignContent: "center",
+            textAlign: "start",
+            fontWeight: "bold",
+          }}
+        >
           ...
         </Typography>
       )}
@@ -88,7 +95,7 @@ const ModuleChips = ({ groups }) => {
         <DialogContent>
           <Box
             sx={{
-              height: 300, 
+              height: 300,
               overflowY: "auto",
               pr: 1,
               my: 2,
@@ -110,9 +117,7 @@ const ModuleChips = ({ groups }) => {
                   }}
                 >
                   <ListItemAvatar>
-                    <Avatar>
-                      {group.name[0].toUpperCase()}
-                    </Avatar>
+                    <Avatar>{group.name[0].toUpperCase()}</Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
@@ -305,10 +310,7 @@ export default function Project() {
       renderCell: (params) => {
         return (
           <div className="cursor-pointer flex justify-start items-center h-full w-full ">
-            <Chip 
-            label={`#${params?.row?.id}`}
-            size="small"
-            />
+            <Chip label={`#${params?.row?.id}`} size="small" />
           </div>
         );
       },
@@ -622,7 +624,7 @@ export default function Project() {
               </MenuItem>
             </Menu>
           </>
-        ) : (
+        ) : projectsData?.results?.length > 0 ? (
           <Box
             sx={{
               display: "grid",
@@ -643,6 +645,11 @@ export default function Project() {
                 <ProjectCard project={project} />
               </Box>
             ))}
+          </Box>
+        ) : (
+          <Box className="text-center text-slate-500 mt-8">
+            <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+            <p>No Project found</p>
           </Box>
         )}
       </Box>

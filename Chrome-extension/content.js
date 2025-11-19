@@ -2,6 +2,13 @@ let events = [];
 let isRecording = false;
 let lastUrl = location.href;
 
+// Load events from storage on script load
+chrome.storage.local.get(['recordedEvents'], (result) => {
+  if (result.recordedEvents && Array.isArray(result.recordedEvents)) {
+    events = result.recordedEvents;
+  }
+});
+
 // Calendar interaction tracking
 let calendarInteraction = {
   active: false,
@@ -24,6 +31,8 @@ function logEvent(type, details) {
     timestamp: new Date().toISOString()
   };
   events.push(eventData);
+  // Persist to storage after each event
+  chrome.storage.local.set({ recordedEvents: events });
 }
 
 // Helper function to format date from calendar interaction
@@ -135,6 +144,8 @@ function completeCalendarInteraction() {
     
 
     events.push(finalEvent);
+    // Persist to storage
+    chrome.storage.local.set({ recordedEvents: events });
   }
   
   // Reset calendar interaction
@@ -165,6 +176,8 @@ function recordInitialUrl () {
   };
   
   events.push(initialEvent);
+  // Persist to storage
+  chrome.storage.local.set({ recordedEvents: events });
 }
 
 // function getNearestSection(el) {
@@ -844,18 +857,36 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "startRecording") {
     isRecording = true;
     events = [];
-    recordInitialUrl();
+    // Clear storage when starting new recording
+    chrome.storage.local.set({ recordedEvents: [] }, () => {
+      recordInitialUrl();
+    });
     sendResponse({ status: "recording started" });
   }
   if (msg.action === "stopRecording") {
     isRecording = false;
-    sendResponse({ status: "recording stopped" });
+    // Ensure we have the latest events from storage before logging
+    chrome.storage.local.get(['recordedEvents'], (result) => {
+      if (result.recordedEvents && Array.isArray(result.recordedEvents)) {
+        events = result.recordedEvents;
+      }
+      sendResponse({ status: "recording stopped" });
+    });
+    return true; // Keep channel open for async response
   }
   if (msg.action === "getEvents") {
-    sendResponse(events || []); // ✅ never undefined
+    // Get latest events from storage before sending
+    chrome.storage.local.get(['recordedEvents'], (result) => {
+      if (result.recordedEvents && Array.isArray(result.recordedEvents)) {
+        events = result.recordedEvents;
+      }
+      sendResponse(events || []); // ✅ never undefined
+    });
+    return true; // Keep channel open for async response
   }
   if (msg.action === "clearEvents") {
     events = [];
+    chrome.storage.local.set({ recordedEvents: [] });
     sendResponse({ status: "cleared" });
   }
   return true; // ✅ ensures async safe response

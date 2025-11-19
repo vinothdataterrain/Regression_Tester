@@ -255,11 +255,43 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         if not latest_run:
             return Response({"message": "No runs found for this testcase"}, status=404)
         project = testcase.project
-        log_test_action(user=request.user, test_name=testcase.name, status=latest_run.status, project_name=project.name, info={"testcase_id": testcase.id, "report": latest_run.result_file.url if latest_run.result_file else None, "project":project.name , "progress": latest_run.progress})
+        
+        # log when status is "completed" or "failed"
+        run_id = str(latest_run.id)
+        final_states = ["completed", "failed"]
+        
+        # Check if a log already exists for this run_id with the current status
+        existing_log = TestActionLog.objects.filter(
+            user=request.user,
+            test_name=testcase.name,
+            status=latest_run.status
+        ).filter(
+            additional_info__run_id=run_id
+        ).order_by('-created_at').first()
+        
+        should_log = (
+            latest_run.status in final_states and 
+            existing_log is None
+        )
+        
+        if should_log:
+            log_test_action(
+                user=request.user, 
+                test_name=testcase.name, 
+                status=latest_run.status, 
+                project_name=project.name, 
+                info={
+                    "testcase_id": testcase.id,
+                    "run_id": run_id,
+                    "report": latest_run.result_file.url if latest_run.result_file else None,
+                    "project": project.name,
+                    "progress": latest_run.progress
+                }
+            )
 
         return Response({
             "testcase_id": testcase.id,
-            "run_id": str(latest_run.id),
+            "run_id": run_id,
             "name":testcase.name,
             "status": latest_run.status,
             "progress": latest_run.progress,
