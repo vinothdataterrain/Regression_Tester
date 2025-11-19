@@ -54,6 +54,11 @@ const ModuleChips = ({ groups }) => {
   const hiddenCount = groups.length - 1;
   return (
     <div className="w-full items-center h-full">
+      {groups?.length === 0 && (
+        <Typography sx={{ alignContent: "center", textAlign: "start", fontWeight: "bold"}}>
+          ...
+        </Typography>
+      )}
       {/* Display Chips */}
       <Box display="flex" className="w-full h-full items-center">
         {visibleGroups.map((group) => (

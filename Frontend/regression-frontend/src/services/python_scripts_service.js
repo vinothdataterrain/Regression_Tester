@@ -1,9 +1,11 @@
-import { api } from "./api";
+import { api, rtkQueryServiceTags } from "./api";
+const { SCRIPT_PROJECT, SCRIPT } = rtkQueryServiceTags;
 
 export const PythonScripts = api.injectEndpoints({
   endpoints: (builder) => ({
     getScriptProjects: builder.query({
-      query: () => '/script-projects/'
+      query: () => "/script-projects/",
+      providesTags: [SCRIPT_PROJECT, SCRIPT],
     }),
     createScriptProject: builder.mutation({
       query: (data) => ({
@@ -11,6 +13,7 @@ export const PythonScripts = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: [SCRIPT_PROJECT],
     }),
     createScript: builder.mutation({
       query: ({ id, data }) => ({
@@ -18,6 +21,7 @@ export const PythonScripts = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: [SCRIPT],
     }),
     editScript: builder.mutation({
       query: ({ id, data }) => ({

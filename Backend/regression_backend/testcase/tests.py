@@ -132,10 +132,6 @@ def generate_group_report(group_name, total_tests, passed, failed, results):
         {''.join(rows)}
     </table>
 
-    <div class="footer">
-        <hr>
-        # <p>Generated automatically by Playwright Test Runner</p>
-    </div>
 </body>
 </html>
 """

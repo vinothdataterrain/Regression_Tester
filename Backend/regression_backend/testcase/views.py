@@ -270,8 +270,14 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         """
         Poll latest background TestRun status for a testcase.
         """
+        user = request.user
+        team = Team.objects.filter(members=user).first()
+        projects = Project.objects.filter(team=team)
+
+        if not team:
+            return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
         data = []
-        testcases = TestCase.objects.all()
+        testcases = TestCase.objects.filter(project__in=projects).order_by('-id')
 
         for testcase in testcases:
             latest_run = testcase.runs.order_by("-created_at").first()
@@ -675,8 +681,19 @@ class PlaywrightRunView(APIView):
 
 
 class ScriptProjectViewSet(viewsets.ModelViewSet):
-    queryset = ScriptProject.objects.all()
+    # queryset = ScriptProject.objects.all()
     serializer_class = ScriptProjectSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+    
+        if user.is_superuser:
+            return ScriptProject.objects.all()
+
+        return ScriptProject.objects.filter(user=user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["post"], url_path="add-script")
     def add_script(self, request, pk=None):
@@ -689,8 +706,16 @@ class ScriptProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
    
 class ScriptCaseViewSet(viewsets.ModelViewSet):
-    queryset = ScriptCase.objects.all()
+    # queryset = ScriptCase.objects.all()
     serializer_class = ScriptCaseSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return ScriptCase.objects.all()
+
+        return ScriptCase.objects.filter(project__user=user)
 
     @action(detail=True, methods=["post"], url_path="run")
     def run_script(self, request, pk=None):

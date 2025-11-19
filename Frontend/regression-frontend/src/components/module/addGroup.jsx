@@ -59,7 +59,6 @@ export default function Group({
     }
   }, [isEditing, selectedModule]);
 
-  console.log("selectedgroup", selectedModule)
 
   useEffect(() => {
     if (isGroupCreationSuccess) {

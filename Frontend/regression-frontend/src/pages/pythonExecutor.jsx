@@ -681,7 +681,7 @@ export default function PlaywrightExecutorWithScreenshots() {
         fullWidth
       >
         <DialogContent>
-          <AddScriptProject />
+          <AddScriptProject addedProject={() => setAddProject(false)} />
         </DialogContent>
       </Dialog>
       <AddScriptDialog
@@ -709,7 +709,7 @@ export default function PlaywrightExecutorWithScreenshots() {
             >
               {/* Project Header */}
               <div
-                className={`flex items-center  justify-between p-4 rounded border border-gray-300 cursor-pointer ${
+                className={`flex items-center  justify-between p-4 rounded border h-full border-gray-300 cursor-pointer ${
                   openProject === proj
                     ? "bg-gradient-to-r from-gray-100 to-gray-300"
                     : "bg-gradient-to-r from-gray-50 to-gray-200"

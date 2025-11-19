@@ -10,7 +10,7 @@ import {
 import { toast } from 'react-toastify';
 import { useCreateScriptProjectMutation } from '../../services/python_scripts_service';
 
-export default function AddScriptProject() {
+export default function AddScriptProject({addedProject}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState(null);
@@ -33,7 +33,9 @@ export default function AddScriptProject() {
       const res = await createScriptProject(payload);
       if(res){
         toast.success("Project created successfully !")
+        addedProject()
       }
+
       setName('');
       setDescription('');
     } catch (err) {

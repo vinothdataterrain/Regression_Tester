@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -102,6 +103,7 @@ class TestRunReport(models.Model):
 
     
 class ScriptProject(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
 

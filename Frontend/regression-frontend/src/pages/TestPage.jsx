@@ -455,8 +455,6 @@ export default function TestPage() {
   };
   const handleEditGroup = (module) => {
     setMode("edit");
-    
-  console.log("selectedgroup123", module)
     setSelectedModule(module);
     handleClose();
   };
@@ -487,7 +485,7 @@ export default function TestPage() {
   };
 
   const handleViewModuleResult = () => {
-    navigate(`/view-result`, { state: { data: moduleResult } });
+    navigate(`/projects/view-result`, { state: { data: moduleResult } });
   };
 
   const handleViewModuleReport = (report_url) => {
@@ -654,7 +652,7 @@ export default function TestPage() {
           startIcon={<AddIcon />}
           onClick={handleAddGroup}
           size="small"
-          sx={{ mb : 2}}
+          sx={{ mb: 2 }}
         >
           Add Module
         </Button>
@@ -753,6 +751,7 @@ export default function TestPage() {
                   startIcon={<UploadFile />}
                   onClick={() => {
                     setTestCaseName("");
+                    setSelectedGroup("");
                     setIsAddingJson(true);
                     setSelectedProject(currentProject);
                   }}
@@ -768,402 +767,417 @@ export default function TestPage() {
       </Card>
 
       {/* Test Cases Section */}
-      <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
-        Modules ({currentProject?.groups?.length || 0})
-      </Typography>
+      {groupData?.results?.length > 0 && (
+        <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 3 }}>
+          Modules ({currentProject?.groups?.length || 0})
+        </Typography>
+      )}
 
       <Box>
         <div className="grid gap-6">
-          {(groupData?.results).map((grp) => (
-            <div
-              key={grp.id}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
-              onClick={() => {
-                setGroup(grp);
-                setSelectedGroup(grp.name);
-              }}
-            >
-              {/* Group Header */}
+          {groupData?.results?.length > 0 ? (
+            groupData?.results?.map((grp) => (
               <div
-                onClick={() => toggleGroup(grp.id)}
-                className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
+                key={grp.id}
+                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+                onClick={() => {
+                  setGroup(grp);
+                  setSelectedGroup(grp.name);
+                }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="mt-1">
-                      {expandedGroups.has(grp.id) ? (
-                        <ExpandMore className="w-5 h-5 text-slate-600" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-slate-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-xl font-semibold text-slate-800">
-                              {grp.name}
-                            </h2>
-                            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-sm rounded-full">
-                              ID: {grp.id}
-                            </span>
-                            {showModuleResult && groupReport[grp.id] && (
-                          <div className="ml-2">
-                            <Button
-                              className="!bg-green-700 !text-white"
-                              bgcolor="success.main"
-                              onClick={handleViewModuleResult}
-                            >
-                              View Result
-                            </Button>
-                          </div>
+                {/* Group Header */}
+                <div
+                  onClick={() => toggleGroup(grp.id)}
+                  className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="mt-1">
+                        {expandedGroups.has(grp.id) ? (
+                          <ExpandMore className="w-5 h-5 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-slate-600" />
                         )}
-                          </div>
-                          <p className="text-slate-600 mb-3">
-                            {grp.description}
-                          </p>
-                          <div className="flex items-center gap-2 text-sm">
-                            <List className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-600">
-                              {grp.testcases.length} test case
-                              {grp.testcases.length !== 1 ? "s" : ""}
-                            </span>
-
-                            {grp?.group_report &&
-                              grp?.group_report.trim() !== "" && (
-                                <div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h2 className="text-xl font-semibold text-slate-800">
+                                {grp.name}
+                              </h2>
+                              <span className="px-3 py-1 bg-slate-100 text-slate-600 text-sm rounded-full">
+                                ID: {grp.id}
+                              </span>
+                              {showModuleResult && groupReport[grp.id] && (
+                                <div className="ml-2">
                                   <Button
-                                    onClick={() =>
-                                      handleViewModuleReport(
-                                        grp?.group_report
-                                      )
-                                    }
-                                    className="ml-2"
+                                    className="!bg-green-700 !text-white"
+                                    bgcolor="success.main"
+                                    onClick={handleViewModuleResult}
                                   >
-                                    Report
+                                    View Result
                                   </Button>
                                 </div>
                               )}
-                          </div>
-                        </div>
+                            </div>
+                            <p className="text-slate-600 mb-3">
+                              {grp.description}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm">
+                              <List className="w-4 h-4 text-slate-500" />
+                              <span className="text-slate-600">
+                                {grp.testcases.length} test case
+                                {grp.testcases.length !== 1 ? "s" : ""}
+                              </span>
 
-                        <div className="flex gap-2">
-                          <Button
-                            endIcon={<KeyboardArrowDown />}
-                            className="w-20 h-[30px] md:h-[50px] cursor-pointer md:w-auto text-xs md:text-md rounded-full px-3 p-2"
-                            onClick={handleActionClick}
-                          >
-                            Action
-                          </Button>
-                          <Menu
-                            anchorEl={anchorEl}
-                            open={open}
-                            onClose={handleClose}
-                            MenuListProps={{
-                              "aria-labelledby": "basic-button",
-                            }}
-                            anchorOrigin={{
-                              vertical: "bottom",
-                              horizontal: "center",
-                            }}
-                            transformOrigin={{
-                              vertical: "top",
-                              horizontal: "center",
-                            }}
-                            slotProps={{
-                              paper: {
-                                sx: {
-                                  boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
-                                  overflow: "visible",
-                                  "&:before": {
-                                    content: '""',
-                                    display: "block",
-                                    position: "absolute",
-                                    top: 0,
-                                    left: "45%",
-                                    height: 10,
-                                    width: 10,
-                                    backgroundColor: "inherit",
-                                    zIndex: -1,
-                                    marginLeft: "0.5px",
-                                    transform: "translateY(-50%) rotate(45deg)",
-                                    boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+                              {grp?.group_report &&
+                                grp?.group_report.trim() !== "" && (
+                                  <div>
+                                    <Button
+                                      onClick={() =>
+                                        handleViewModuleReport(
+                                          grp?.group_report
+                                        )
+                                      }
+                                      className="ml-2"
+                                    >
+                                      Report
+                                    </Button>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              endIcon={<KeyboardArrowDown />}
+                              className="w-20 h-[30px] md:h-[50px] cursor-pointer md:w-auto text-xs md:text-md rounded-full px-3 p-2"
+                              onClick={handleActionClick}
+                            >
+                              Action
+                            </Button>
+                            <Menu
+                              anchorEl={anchorEl}
+                              open={open}
+                              onClose={handleClose}
+                              MenuListProps={{
+                                "aria-labelledby": "basic-button",
+                              }}
+                              anchorOrigin={{
+                                vertical: "bottom",
+                                horizontal: "center",
+                              }}
+                              transformOrigin={{
+                                vertical: "top",
+                                horizontal: "center",
+                              }}
+                              slotProps={{
+                                paper: {
+                                  sx: {
+                                    boxShadow: "0px 1px 2px rgba(0,0,0,0.2)",
+                                    overflow: "visible",
+                                    "&:before": {
+                                      content: '""',
+                                      display: "block",
+                                      position: "absolute",
+                                      top: 0,
+                                      left: "45%",
+                                      height: 10,
+                                      width: 10,
+                                      backgroundColor: "inherit",
+                                      zIndex: -1,
+                                      marginLeft: "0.5px",
+                                      transform:
+                                        "translateY(-50%) rotate(45deg)",
+                                      boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+                                    },
                                   },
                                 },
-                              },
-                            }}
-                          >
-                            {
-                              <Tooltip
-                                title="Edit/Update Module"
-                                placement="right"
-                              >
-                                <MenuItem
-                                  className="!text-[12px]"
-                                  onClick={() => handleEditGroup(group)}
-                                >
-                                  <EditIcon className="pr-2" />
-                                  Edit
-                                </MenuItem>
-                              </Tooltip>
-                            }
-                            {
-                              <Tooltip title="Delete Module" placement="right">
-                                <MenuItem
-                                  className="!text-[12px]"
-                                  onClick={() => handleDeleteGroup(grp?.id)}
-                                >
-                                  <DeleteIcon className="pr-2" />
-                                  Delete
-                                </MenuItem>
-                              </Tooltip>
-                            }
-                          </Menu>
-                          <div className="mt-2">
-                            <Button
-                              size="small"
-                              variant="contained"
-                              startIcon={<PlayIcon />}
-                              className="p-1 w-8 md:w-auto"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleGroupRun(grp?.id);
                               }}
                             >
-                              {"Run"}
-                            </Button>
+                              {
+                                <Tooltip
+                                  title="Edit/Update Module"
+                                  placement="right"
+                                >
+                                  <MenuItem
+                                    className="!text-[12px]"
+                                    onClick={() => handleEditGroup(group)}
+                                  >
+                                    <EditIcon className="pr-2" />
+                                    Edit
+                                  </MenuItem>
+                                </Tooltip>
+                              }
+                              {
+                                <Tooltip
+                                  title="Delete Module"
+                                  placement="right"
+                                >
+                                  <MenuItem
+                                    className="!text-[12px]"
+                                    onClick={() => handleDeleteGroup(grp?.id)}
+                                  >
+                                    <DeleteIcon className="pr-2" />
+                                    Delete
+                                  </MenuItem>
+                                </Tooltip>
+                              }
+                            </Menu>
+                            <div className="mt-2">
+                              <Button
+                                size="small"
+                                variant="contained"
+                                startIcon={<PlayIcon />}
+                                className="p-1 w-8 md:w-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGroupRun(grp?.id);
+                                }}
+                              >
+                                {"Run"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Test Cases */}
-              {expandedGroups.has(grp.id) && (
-                <div className="border-t border-slate-200 bg-slate-50">
-                  {grp.testcases.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">
-                      <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                      <p>No test cases in this group</p>
-                    </div>
-                  ) : (
-                    <div className="p-6 space-y-4">
-                      {grp.testcases.map((testcase) => (
-                        <div
-                          key={testcase.id}
-                          className="bg-white rounded-lg border border-slate-200 overflow-hidden"
-                        >
-                          {/* Test Case Header */}
+                {/* Test Cases */}
+                {expandedGroups.has(grp.id) && (
+                  <div className="border-t border-slate-200 bg-slate-50">
+                    {grp.testcases.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500">
+                        <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                        <p>No test cases in this group</p>
+                      </div>
+                    ) : (
+                      <div className="p-6 space-y-4">
+                        {grp.testcases.map((testcase) => (
                           <div
-                            onClick={() =>
-                              setSelectedTestCase(
-                                selectedTestCase === testcase.id
-                                  ? null
-                                  : testcase.id
-                              )
-                            }
-                            className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                            key={testcase.id}
+                            className="bg-white rounded-lg border border-slate-200 overflow-hidden"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <PlayArrow className="w-5 h-5 text-emerald-600" />
-                                <div>
-                                  <h3 className="font-semibold text-slate-800">
-                                    {testcase.name}
-                                  </h3>
-                                  <p className="text-sm text-slate-500">
-                                    {testcase.steps.length} steps • Created{" "}
-                                    {new Date(
-                                      testcase.created_at
-                                    ).toLocaleDateString()}
-                                  </p>
+                            {/* Test Case Header */}
+                            <div
+                              onClick={() =>
+                                setSelectedTestCase(
+                                  selectedTestCase === testcase.id
+                                    ? null
+                                    : testcase.id
+                                )
+                              }
+                              className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <PlayArrow className="w-5 h-5 text-emerald-600" />
+                                  <div>
+                                    <h3 className="font-semibold text-slate-800">
+                                      {testcase.name}
+                                    </h3>
+                                    <p className="text-sm text-slate-500">
+                                      {testcase.steps.length} steps • Created{" "}
+                                      {new Date(
+                                        testcase.created_at
+                                      ).toLocaleDateString()}
+                                    </p>
 
-                                  <Box>
-                                    {testCaseReports[testcase.id] &&
-                                      !uploadedFile && (
-                                        <Tooltip title="Download HTML Report">
-                                          <IconButton
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDownloadReport(testcase.id);
-                                            }}
-                                            color="primary"
-                                          >
-                                            <FileDownload />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
-                                    <Tooltip title="Upload CSV or Excel file">
+                                    <Box>
+                                      {testCaseReports[testcase.id] &&
+                                        !uploadedFile && (
+                                          <Tooltip title="Download HTML Report">
+                                            <IconButton
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDownloadReport(
+                                                  testcase.id
+                                                );
+                                              }}
+                                              color="primary"
+                                            >
+                                              <FileDownload />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      <Tooltip title="Upload CSV or Excel file">
+                                        <Button
+                                          variant="outlined"
+                                          startIcon={<UploadFile />}
+                                          onClick={() =>
+                                            fileInputRef.current?.click()
+                                          }
+                                          //className="rounded-full min-w-4 mx-auto md:rounded-md"
+                                        >
+                                          {isMdscreen && "Upload Data"}
+                                          <input
+                                            type="file"
+                                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                            ref={fileInputRef}
+                                            style={{ display: "none" }}
+                                            onChange={handleExcelUpload}
+                                          />
+                                        </Button>
+                                      </Tooltip>
+                                      <Tooltip title="Edit Test Case">
+                                        <IconButton
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedProject(currentProject);
+                                            setSelectedTestCase(testcase);
+                                            setTestCaseName(testcase.name);
+                                            setTestSteps(
+                                              testcase.steps.map((step) => ({
+                                                action: step.action || "",
+                                                field:
+                                                  step.action === "goto"
+                                                    ? step.url || ""
+                                                    : step.selector || "",
+                                                value: step.value || "",
+                                                url: step.url || "", // Add URL field for goto actions
+                                              }))
+                                            );
+                                            setIsEditingTestCase(true);
+                                          }}
+                                          className="rounded-full border"
+                                        >
+                                          <EditIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Delete Test Case">
+                                        <IconButton
+                                          onClick={() =>
+                                            handleDeleteTestcase(testcase)
+                                          }
+                                          color="error"
+                                        >
+                                          <DeleteIcon />
+                                        </IconButton>
+                                      </Tooltip>
                                       <Button
-                                        variant="outlined"
-                                        startIcon={<UploadFile />}
-                                        onClick={() =>
-                                          fileInputRef.current?.click()
+                                        size="small"
+                                        variant="contained"
+                                        startIcon={
+                                          runningTests.has(
+                                            `${currentProject?.id}-${testcase?.id}`
+                                          ) ? (
+                                            <CircularProgress
+                                              size={16}
+                                              color="inherit"
+                                            />
+                                          ) : (
+                                            <PlayIcon />
+                                          )
                                         }
-                                        //className="rounded-full min-w-4 mx-auto md:rounded-md"
-                                      >
-                                        {isMdscreen && "Upload Data"}
-                                        <input
-                                          type="file"
-                                          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                                          ref={fileInputRef}
-                                          style={{ display: "none" }}
-                                          onChange={handleExcelUpload}
-                                        />
-                                      </Button>
-                                    </Tooltip>
-                                    <Tooltip title="Edit Test Case">
-                                      <IconButton
+                                        className="p-1 w-8 md:w-auto"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setSelectedProject(currentProject);
-                                          setSelectedTestCase(testcase);
-                                          setTestCaseName(testcase.name);
-                                          setTestSteps(
-                                            testcase.steps.map((step) => ({
-                                              action: step.action || "",
-                                              field:
-                                                step.action === "goto"
-                                                  ? step.url || ""
-                                                  : step.selector || "",
-                                              value: step.value || "",
-                                              url: step.url || "", // Add URL field for goto actions
-                                            }))
+                                          handleRunTestCase(
+                                            currentProject,
+                                            testcase
                                           );
-                                          setIsEditingTestCase(true);
                                         }}
-                                        className="rounded-full border"
                                       >
-                                        <EditIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Delete Test Case">
-                                      <IconButton
-                                        onClick={() =>
-                                          handleDeleteTestcase(testcase)
-                                        }
-                                        color="error"
-                                      >
-                                        <DeleteIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                    <Button
-                                      size="small"
-                                      variant="contained"
-                                      startIcon={
-                                        runningTests.has(
-                                          `${currentProject?.id}-${testcase?.id}`
-                                        ) ? (
-                                          <CircularProgress
-                                            size={16}
-                                            color="inherit"
-                                          />
-                                        ) : (
-                                          <PlayIcon />
-                                        )
-                                      }
-                                      className="p-1 w-8 md:w-auto"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRunTestCase(
-                                          currentProject,
-                                          testcase
-                                        );
-                                      }}
-                                    >
-                                      {isMdscreen &&
-                                        (runningTests.has(
-                                          `${currentProject?.id}-${testcase?.id}`
-                                        )
-                                          ? "Running..."
-                                          : "Run")}
-                                    </Button>
-                                  </Box>
+                                        {isMdscreen &&
+                                          (runningTests.has(
+                                            `${currentProject?.id}-${testcase?.id}`
+                                          )
+                                            ? "Running..."
+                                            : "Run")}
+                                      </Button>
+                                    </Box>
+                                  </div>
                                 </div>
+                                {selectedTestCase === testcase.id ? (
+                                  <ExpandMore className="w-5 h-5 text-slate-600" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-slate-600" />
+                                )}
                               </div>
-                              {selectedTestCase === testcase.id ? (
-                                <ExpandMore className="w-5 h-5 text-slate-600" />
-                              ) : (
-                                <ChevronRight className="w-5 h-5 text-slate-600" />
-                              )}
                             </div>
-                          </div>
 
-                          {/* Test Steps */}
-                          {selectedTestCase === testcase.id && (
-                            <div className="border-t border-slate-200 bg-slate-50 p-4">
-                              <div className="space-y-3">
-                                {testcase.steps.map((step) => (
-                                  <div
-                                    key={step.step_number}
-                                    className="bg-white rounded-lg p-4 border border-slate-200"
-                                  >
-                                    <div className="flex items-start gap-4">
-                                      <div className="flex-shrink-0 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                                        {step.step_number}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span
-                                            className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(
-                                              step.action
-                                            )}`}
-                                          >
-                                            {step.action.toUpperCase()}
-                                          </span>
+                            {/* Test Steps */}
+                            {selectedTestCase === testcase.id && (
+                              <div className="border-t border-slate-200 bg-slate-50 p-4">
+                                <div className="space-y-3">
+                                  {testcase.steps.map((step) => (
+                                    <div
+                                      key={step.step_number}
+                                      className="bg-white rounded-lg p-4 border border-slate-200"
+                                    >
+                                      <div className="flex items-start gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                          {step.step_number}
                                         </div>
-                                        {step.selector && (
-                                          <div className="mb-2">
-                                            <span className="text-xs text-slate-500 font-medium">
-                                              Selector:
-                                            </span>
-                                            <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700 break-all">
-                                              {step.selector}
-                                            </code>
-                                          </div>
-                                        )}
-                                        {step.value && (
-                                          <div className="mb-2">
-                                            <span className="text-xs text-slate-500 font-medium">
-                                              Value:
-                                            </span>
-                                            <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
-                                              {step.value}
-                                            </code>
-                                          </div>
-                                        )}
-                                        {step.url && (
-                                          <div>
-                                            <span className="text-xs text-slate-500 font-medium">
-                                              URL:
-                                            </span>
-                                            <a
-                                              href={step.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="ml-2 text-sm text-blue-600 hover:text-blue-800 break-all"
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span
+                                              className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(
+                                                step.action
+                                              )}`}
                                             >
-                                              {step.url}
-                                            </a>
+                                              {step.action.toUpperCase()}
+                                            </span>
                                           </div>
-                                        )}
+                                          {step.selector && (
+                                            <div className="mb-2">
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                Selector:
+                                              </span>
+                                              <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700 break-all">
+                                                {step.selector}
+                                              </code>
+                                            </div>
+                                          )}
+                                          {step.value && (
+                                            <div className="mb-2">
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                Value:
+                                              </span>
+                                              <code className="ml-2 text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                                {step.value}
+                                              </code>
+                                            </div>
+                                          )}
+                                          {step.url && (
+                                            <div>
+                                              <span className="text-xs text-slate-500 font-medium">
+                                                URL:
+                                              </span>
+                                              <a
+                                                href={step.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="ml-2 text-sm text-blue-600 hover:text-blue-800 break-all"
+                                              >
+                                                {step.url}
+                                              </a>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <Box className="text-center text-slate-500">
+              <Description className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+              <p>No Modules in this group</p>
+            </Box>
+          )}
         </div>
         <div className="my-4">
           <CustomPagination
@@ -1211,7 +1225,7 @@ export default function TestPage() {
               <Typography sx={{ mb: 1 }}>Assign To Module</Typography>
               <SelectBox
                 value={selectedGroup}
-                placeholder="Select Module"
+                placeholder={GroupList?.length > 0 ? "Select Module" : "No Module Found"}
                 menuList={GroupList}
                 handleChange={(e) => setSelectedGroup(e.target.value)}
               />
@@ -1574,7 +1588,7 @@ export default function TestPage() {
               <Typography>Assign To Module</Typography>
               <SelectBox
                 value={selectedGroup}
-                placeholder="Select Module"
+                placeholder={GroupList?.length > 0 ? "Select Module" : "No Module Found"}
                 menuList={GroupList}
                 handleChange={(e) => setSelectedGroup(e.target.value)}
               />
@@ -1659,7 +1673,13 @@ export default function TestPage() {
         </DialogActions>
       </Dialog>
 
-       <Group open={mode !== null} mode={mode} currentProject={currentProject} selectedModule={selectedModule} onClose={() => setMode(null)}/>
+      <Group
+        open={mode !== null}
+        mode={mode}
+        currentProject={currentProject}
+        selectedModule={selectedModule}
+        onClose={() => setMode(null)}
+      />
 
       {/* Snackbar */}
       <Snackbar

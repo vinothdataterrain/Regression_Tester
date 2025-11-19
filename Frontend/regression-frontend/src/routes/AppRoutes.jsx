@@ -44,7 +44,7 @@ export default function AppRoutes() {
           <Route path="/results/:id" element={<TestCaseProgress />} />
           <Route path="/pythonScripts" element={<PythonExecutor />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/view-result" element={<ModuleResult />} />
+          <Route path="/projects/view-result" element={<ModuleResult />} />
         </Route>
       </Route>
     </Routes>
