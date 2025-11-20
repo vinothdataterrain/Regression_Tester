@@ -374,6 +374,41 @@ class GroupViewSet(viewsets.ModelViewSet):
             return self.queryset.filter(project_id=project_id)
         return self.queryset
     
+    def list(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        project_id = request.query_params.get("project")
+        
+        if project_id:
+            unassigned_testcases = TestCase.objects.filter(
+                project_id=project_id,
+                group__isnull=True
+            )
+        else:
+            project_ids = queryset.values_list('project_id', flat=True).distinct()
+            if project_ids:
+                unassigned_testcases = TestCase.objects.filter(
+                    project_id__in=project_ids,
+                    group__isnull=True
+                )
+            else:
+                unassigned_testcases = TestCase.objects.filter(group__isnull=True)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            testcase_serializer = TestCaseSerializer(unassigned_testcases, many=True)
+            response = self.get_paginated_response(serializer.data)
+            response.data['testcases'] = testcase_serializer.data
+            return response
+        
+        serializer = self.get_serializer(queryset, many=True)
+        testcase_serializer = TestCaseSerializer(unassigned_testcases, many=True)
+        return Response({
+            'results': serializer.data,
+            'testcases': testcase_serializer.data 
+        })
+    
     @action(detail=True, methods=["post"], url_path="run")
     def run_group(self, request, pk=None):
         try:
