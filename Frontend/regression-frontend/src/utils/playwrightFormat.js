@@ -387,7 +387,18 @@ export const convertToPlaywrightFormat = (events) => {
               value: "",
             });
           }
-        } else if (tag === "input" && details.type === "checkbox") {
+        }
+        
+        else if(tag === "img"){
+         const src = details?.src
+         const alt = details?.alt
+         result.push({
+          action : "click",
+          selector : `${tag}[alt="${alt}"]` || `${tag}[src="${src}"]` || selector,
+          value : "",
+         })
+        } 
+        else if (tag === "input" && details.type === "checkbox") {
           // Checkbox clicks are handled in input events, skip here
           break;
         } 
@@ -411,7 +422,8 @@ export const convertToPlaywrightFormat = (events) => {
               value: "",
             });
           }
-        } else if (tag === "div") {
+        }
+         else if (tag === "div") {
           const role = details.role || "";
           const isHeadlessUI =
             (id && id.startsWith("headlessui-")) ||
@@ -450,7 +462,15 @@ export const convertToPlaywrightFormat = (events) => {
                 selector: `${tag}[id="${id}"]`,
                 value: "",
               });
-            } else if (text && !id) {
+            } 
+            else if (text && !id && !aria_label){
+              result.push({
+                action: "click",
+                selector: selector,
+                value: "",
+              });
+            }
+            else if (text && !id) {
               result.push({
                 action: "click",
                 selector:
@@ -467,7 +487,8 @@ export const convertToPlaywrightFormat = (events) => {
               });
             }
           }
-        } else if (
+        } 
+        else if (
           ["span", "li", "p", "h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)
         ) {
           if (text) {
@@ -483,13 +504,15 @@ export const convertToPlaywrightFormat = (events) => {
               value: "",
             });
           }
-        } else if (tag === "svg") {
+        } 
+        else if (tag === "svg") {
           result.push({
             action: "click",
             selector: selector,
             value: "",
           });
-        } else {
+        } 
+        else {
           // Fallback for any other element
           result.push({
             action: "click",

@@ -59,6 +59,7 @@ import {
 } from "../services/python_scripts_service";
 import AddScriptProject from "../components/pythonExecutor/addProject";
 import AddScriptDialog from "../components/pythonExecutor/addScript";
+import { DOMAIN } from "../utils/constant";
 
 export default function PlaywrightExecutorWithScreenshots() {
   const [script, setScript] = useState(null);
@@ -396,7 +397,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                       >
                         <PhotoCamera />
                         <Typography variant="h6">
-                          Screenshots ({result?.details?.screenshots?.length})
+                          Screenshots ({result?.screenshots?.length})
                         </Typography>
                       </Box>
                     </AccordionSummary>
@@ -431,7 +432,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                             }
                           >
                             <img
-                              src={`data:image/png;base64,${screenshot.data}`}
+                              src={`${DOMAIN}/${screenshot.url}`}
                               alt={screenshot.description}
                               loading="lazy"
                               style={{ height: 120, objectFit: "cover" }}
@@ -559,7 +560,7 @@ export default function PlaywrightExecutorWithScreenshots() {
             <Box>
               <Typography variant="h6">
                 Screenshot {screenshotIndex + 1} of{" "}
-                {result?.details.screenshots.length || 1}
+                {result?.details?.screenshots?.length || 1}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {selectedScreenshot?.description}
@@ -591,7 +592,7 @@ export default function PlaywrightExecutorWithScreenshots() {
           <Box sx={{ position: "relative", textAlign: "center" }}>
             {selectedScreenshot && (
               <img
-                src={`http://127.0.0.1:8000${selectedScreenshot.url}`}
+                src={`${DOMAIN}${selectedScreenshot.url}`}
                 alt={selectedScreenshot.description}
                 style={{
                   maxWidth: "100%",
@@ -962,7 +963,7 @@ export default function PlaywrightExecutorWithScreenshots() {
                             }
                           >
                             <img
-                              src={`http://127.0.0.1:8000${screenshot.url}`}
+                              src={`${DOMAIN}${screenshot.url}`}
                               alt={screenshot.description}
                               loading="lazy"
                               style={{ height: 120, objectFit: "cover" }}

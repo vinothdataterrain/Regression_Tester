@@ -21,7 +21,7 @@ export const PythonScripts = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: [SCRIPT],
+      invalidatesTags: [SCRIPT, SCRIPT_PROJECT],
     }),
     editScript: builder.mutation({
       query: ({ id, data }) => ({
@@ -33,6 +33,7 @@ export const PythonScripts = api.injectEndpoints({
     runScript: builder.mutation({
       query: (id) => ({ url: `/script-case/${id}/run/`, method: "POST" }),
     }),
+    providesTags : [SCRIPT, SCRIPT_PROJECT],
   }),
 });
 

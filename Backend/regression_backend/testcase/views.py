@@ -733,7 +733,9 @@ class PlaywrightExecutorWithScreenshots:
 class PlaywrightRunView(APIView):
     def post(self, request, *args, **kwargs):
         script_content = request.data.get('script')
-        timeout = int(request.data.get('timeout', 60))
+        script_name = request.data.get('name', 'manual_script')
+        timeout_raw = request.data.get('timeout', 60)
+        timeout = int(timeout_raw) if str(timeout_raw).isdigit() else 60
         auto_screenshots = request.data.get('auto_screenshots', True)
         
         if not script_content:
@@ -743,7 +745,7 @@ class PlaywrightRunView(APIView):
         
         try:
             executor = PlaywrightExecutorWithScreenshots()
-            result = executor.execute_script(script_content, timeout, auto_screenshots)
+            result = executor.execute_script(script_content, script_name, timeout, auto_screenshots)
             
             return Response(result, status=status.HTTP_200_OK)
             

@@ -239,7 +239,14 @@ function getSelector(el) {
 
   // 1. aria-label (highest priority)
   if (el.getAttribute("aria-label") && !el.closest(".react-select__control")) {
-    return `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(el.getAttribute("aria-label"))}"]`;
+     const labelText = el.getAttribute("aria-label").toLowerCase();
+      // Base selector
+  let selector = `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(el.getAttribute("aria-label"))}"]`;
+// If aria-label contains "search", add :visible
+  if (labelText.includes("search")) {
+    selector += ":visible";
+  }
+    return selector;
   }
 
 
@@ -317,6 +324,12 @@ function getSelector(el) {
   // 8. Text-based selector (Playwright supports it)
   if (el.innerText && el.innerText.trim().length > 0 && el.innerText.trim().length < 50) {
     return `text="${el.innerText.trim()}"`;
+  }
+
+  //9. Img tag
+  if(el.tagName === "IMG"){
+    const alt = el.getAttribute("alt") || ""
+    return `img[alt="${alt}"]`
   }
 
   // 9. Class fallback (skip css-* auto-generated classes)
@@ -417,6 +430,13 @@ document.addEventListener("click", (e) => {
     details.href = target.getAttribute("href");
   }
   
+  //image class
+  if( target.tagName === "IMG"){
+    details.tag = "IMG",
+    details.src = target.getAttribute("src") || "",
+    details.alt = target.getAttribute("alt") || ""
+  }
+
   // Handle "Choose date" button clicks to start calendar interaction
   if (target.tagName === "BUTTON" && target.getAttribute("aria-label") === "Choose date") {
 
