@@ -135,6 +135,23 @@ const TestCaseProgress = () => {
       },
     },
     {
+       field: "project",
+       headerName: "Project",
+       flex: 2,
+       id: 2,
+       minWidth: 150,
+       renderCell: (params) => {
+        return(
+          <div className="cursor-pointer flex justify-start items-center h-full w-full">
+            <Typography variant="body2" fontWeight="medium">
+              {params?.row?.project ?? "..."}
+            </Typography>
+          </div>
+        )
+       }
+
+    },
+    {
       field: "run_id",
       headerName: "Run ID",
       flex: 2,

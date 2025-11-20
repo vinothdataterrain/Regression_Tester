@@ -305,6 +305,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         user = request.user
         team = Team.objects.filter(members=user).first()
         projects = Project.objects.filter(team=team)
+        if user.is_superuser:
+            projects = Project.objects.all()
 
         if not team:
             return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
@@ -317,6 +319,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 data.append({
                     "testcase_id": testcase.id,
                     "name":testcase.name,
+                    "project":testcase.project.name,
                     "run_id": str(latest_run.id),
                     "status": latest_run.status,
                     "progress": latest_run.progress,
@@ -336,6 +339,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         if not team:
             return Response({"detail": "User is not part of any team."}, status=status.HTTP_400_BAD_REQUEST)
         projects = Project.objects.filter(team=team)
+        if user.is_superuser:
+            projects = Project.objects.all()
         testcases = TestCase.objects.filter(project__in=projects).order_by('-id')
         data = []
         for testcase in testcases:
