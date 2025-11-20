@@ -161,15 +161,18 @@ class SummaryView(APIView):
         user = request.user
         if user.is_superuser:
             all_projects = Project.objects.all()
+            all_modules = Group.objects.all()
             all_testcases = TestCase.objects.all()
             all_teststeps = TestStep.objects.all()
             all_project_count = all_projects.count()
+            all_module_count = all_modules.count()
             all_testcase_count = all_testcases.count()
             all_teststeps_count = all_teststeps.count()
 
             avg_steps = all_testcases.annotate(step_count=Count('steps')).aggregate(avg_steps=Avg('step_count'))['avg_steps'] or 0
             admin_data = {
             "totalProjects" : all_project_count,
+            "totalModules" : all_module_count,
             "totalTestCases" : all_testcase_count,
             "totalTestSteps" : all_teststeps_count,
             "avgSteps" : round(avg_steps, 1)
