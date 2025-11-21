@@ -27,6 +27,7 @@ import {
   AccordionDetails,
   Divider,
   Stack,
+  Backdrop,
 } from "@mui/material";
 import {
   PlayArrow,
@@ -60,6 +61,7 @@ import {
 import AddScriptProject from "../components/pythonExecutor/addProject";
 import AddScriptDialog from "../components/pythonExecutor/addScript";
 import { DOMAIN } from "../utils/constant";
+import { toast } from "react-toastify";
 
 export default function PlaywrightExecutorWithScreenshots() {
   const [script, setScript] = useState(null);
@@ -69,20 +71,32 @@ export default function PlaywrightExecutorWithScreenshots() {
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [screenshotIndex, setScreenshotIndex] = useState(0);
   const [openModal, setOpenModal] = useState(false);
-  const [projects, setProjects] = useState([]);
   const [addproject, setAddProject] = useState(false);
-  const [openProject, setOpenProject] = useState(null);
+  const [openProjectId, setOpenProjectId] = useState(null);
   const [addScript, setAddScript] = useState(false);
   const [updateScript, setUpdateScript] = useState(false);
   const [currentScript, setCurrentScript] = useState(null);
-  const { data } = useGetScriptProjectsQuery();
-  const [createScript, {error}] = useCreateScriptMutation();
-  const [runScript, { error: runerror }] = useRunScriptMutation();
-  const [editScript, {error : editerror}] = useEditScriptMutation();
-  useEffect(() => {
-    setProjects(data);
-  }, [data]);
+  const { data : projects = []} = useGetScriptProjectsQuery({}, {refetchOnMountOrArgChange : true});
+  const openProject = projects.find(p => p.id === openProjectId);
+  const [createScript, { error }] = useCreateScriptMutation();
+  const [
+    runScript,
+    { error: runerror, isSuccess: isRunSuccess, isLoading: isScriptRunning },
+  ] = useRunScriptMutation();
+  const [editScript, { error: editerror }] = useEditScriptMutation();
   const [runPythonScripts, { isLoading }] = useRunPythonScriptsMutation();
+
+  useEffect(() => {
+    if (isRunSuccess) {
+      toast.success("Script run successfully!");
+    } else if (runerror) {
+      toast.error(runerror || "Failed to run script!");
+    }
+  }, [isRunSuccess, runerror]);
+
+  useEffect(() => {
+
+  })
 
   const handleRunScript = async () => {
     if (!script.trim()) {
@@ -202,7 +216,7 @@ export default function PlaywrightExecutorWithScreenshots() {
   };
 
   const toggleProject = (project) => {
-    setOpenProject(openProject === project ? null : project);
+    setOpenProjectId(openProjectId === project?.id ? null : project?.id);
   };
 
   const handleScriptRun = async (id) => {
@@ -227,10 +241,13 @@ export default function PlaywrightExecutorWithScreenshots() {
     }
   };
 
-  const handleEditScript = async ({name, script}) => {
-    if(name && script && currentScript?.id) {
-      const data = {name: name, script: script};
-      const response = await editScript({id: currentScript?.id, data}).unwrap();
+  const handleEditScript = async ({ name, script }) => {
+    if (name && script && currentScript?.id) {
+      const data = { name: name, script: script };
+      const response = await editScript({
+        id: currentScript?.id,
+        data,
+      }).unwrap();
       if (editerror) {
         console.log(editerror);
       }
@@ -238,10 +255,16 @@ export default function PlaywrightExecutorWithScreenshots() {
         handleOpenScript();
       }
     }
-  }
+  };
 
   return (
     <Box sx={{ p: 3, mx: "auto" }}>
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isScriptRunning}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       {/* Header */}
       <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
         Playwright Script Executor with Screenshots
@@ -804,7 +827,10 @@ export default function PlaywrightExecutorWithScreenshots() {
                               className="text-indigo-500"
                               fontSize="small"
                             />
-                            <span className="font-medium text-gray-800" data-tooltip={tc?.name}>
+                            <span
+                              className="font-medium text-gray-800"
+                              data-tooltip={tc?.name}
+                            >
                               {tc?.name}
                             </span>
                             <Edit
@@ -834,12 +860,15 @@ export default function PlaywrightExecutorWithScreenshots() {
                     </Accordion>
 
                     {/* Results */}
-                    <h4 data-tooltip="results from testcase" className="font-semibold text-sm text-gray-700 mb-1">
+                    <h4
+                      data-tooltip="results from testcase"
+                      className="font-semibold text-sm text-gray-700 mb-1"
+                    >
                       Results:
                     </h4>
                     <ul className="space-y-2">
                       {tc.results.map((res) => (
-                        <div>
+                        <div key={res?.id}>
                           <li
                             key={res.id}
                             className="flex items-center gap-2 text-sm p-2 rounded-md bg-gray-50"
@@ -920,72 +949,93 @@ export default function PlaywrightExecutorWithScreenshots() {
                                 </AccordionDetails>
                               </Accordion>
                             )}
-                            {res?.details.screenshots && res?.details.screenshots.length > 0 && (
-                  <Accordion defaultExpanded>
-                    <AccordionSummary expandIcon={<ExpandMore />}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <PhotoCamera />
-                        <Typography variant="h6">
-                          Screenshots ({res?.details.screenshots.length})
-                        </Typography>
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          mb: 2,
-                        }}
-                      >
-                        <Button
-                          startIcon={<Download />}
-                          onClick={downloadAllScreenshots}
-                          size="small"
-                          variant="outlined"
-                        >
-                          Download All
-                        </Button>
-                      </Box>
-
-                      <ImageList sx={{ maxHeight: 400 }} cols={2} gap={8}>
-                        {res?.details.screenshots.map((screenshot, index) => (
-                          <ImageListItem
-                            key={index}
-                            sx={{
-                              cursor: "pointer",
-                              "&:hover": { opacity: 0.8 },
-                            }}
-                            onClick={() =>
-                              openScreenshotModal(screenshot, index)
-                            }
-                          >
-                            <img
-                              src={`${DOMAIN}${screenshot.url}`}
-                              alt={screenshot.description}
-                              loading="lazy"
-                              style={{ height: 120, objectFit: "cover" }}
-                            />
-                            <ImageListItemBar
-                              title={screenshot.description}
-                              actionIcon={
-                                <Tooltip title="View Full Size">
-                                  <IconButton
-                                    sx={{ color: "rgba(255, 255, 255, 0.54)" }}
+                          {res?.details.screenshots &&
+                            res?.details.screenshots.length > 0 && (
+                              <Accordion defaultExpanded>
+                                <AccordionSummary expandIcon={<ExpandMore />}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
                                   >
-                                    <Visibility />
-                                  </IconButton>
-                                </Tooltip>
-                              }
-                            />
-                          </ImageListItem>
-                        ))}
-                      </ImageList>
-                    </AccordionDetails>
-                  </Accordion>
-                )}
+                                    <PhotoCamera />
+                                    <Typography variant="h6">
+                                      Screenshots (
+                                      {res?.details.screenshots.length})
+                                    </Typography>
+                                  </Box>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "flex-end",
+                                      mb: 2,
+                                    }}
+                                  >
+                                    <Button
+                                      startIcon={<Download />}
+                                      onClick={downloadAllScreenshots}
+                                      size="small"
+                                      variant="outlined"
+                                    >
+                                      Download All
+                                    </Button>
+                                  </Box>
+
+                                  <ImageList
+                                    sx={{ maxHeight: 400 }}
+                                    cols={2}
+                                    gap={8}
+                                  >
+                                    {res?.details.screenshots.map(
+                                      (screenshot, index) => (
+                                        <ImageListItem
+                                          key={index}
+                                          sx={{
+                                            cursor: "pointer",
+                                            "&:hover": { opacity: 0.8 },
+                                          }}
+                                          onClick={() =>
+                                            openScreenshotModal(
+                                              screenshot,
+                                              index
+                                            )
+                                          }
+                                        >
+                                          <img
+                                            src={`${DOMAIN}${screenshot.url}`}
+                                            alt={screenshot.description}
+                                            loading="lazy"
+                                            style={{
+                                              height: 120,
+                                              objectFit: "cover",
+                                            }}
+                                          />
+                                          <ImageListItemBar
+                                            title={screenshot.description}
+                                            actionIcon={
+                                              <Tooltip title="View Full Size">
+                                                <IconButton
+                                                  sx={{
+                                                    color:
+                                                      "rgba(255, 255, 255, 0.54)",
+                                                  }}
+                                                >
+                                                  <Visibility />
+                                                </IconButton>
+                                              </Tooltip>
+                                            }
+                                          />
+                                        </ImageListItem>
+                                      )
+                                    )}
+                                  </ImageList>
+                                </AccordionDetails>
+                              </Accordion>
+                            )}
                         </div>
                       ))}
                     </ul>

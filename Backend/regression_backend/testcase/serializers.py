@@ -107,9 +107,10 @@ class ScriptCaseSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "script", "results"]
 
     def get_results(self, obj):
-        # fetch latest 2 results
-        results = obj.results.all().order_by("-created_at")[:2]
-        return ScriptResultSerializer(results, many=True).data
+        # fetch latest results
+        latest_result = obj.results.order_by("-created_at").first()
+        # results = obj.results.all().order_by("-created_at")[:2]
+        return ScriptResultSerializer([latest_result], many=True).data if latest_result else []
 
 
 class ScriptProjectSerializer(serializers.ModelSerializer):
