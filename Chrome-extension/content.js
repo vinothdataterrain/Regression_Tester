@@ -237,6 +237,11 @@ function getSelector(el) {
   const tag = el.tagName.toLowerCase();
   const text = (el.innerText || el.textContent || "").trim();
 
+    // get placehoder
+  if(el.getAttribute("placeholder")){
+    return `${el.tagName.toLowerCase()}[placeholder="${CSS.escape(el.getAttribute("placeholder"))}"]`;
+  }
+
   // 1. aria-label (highest priority)
   if (el.getAttribute("aria-label") && !el.closest(".react-select__control")) {
      const labelText = el.getAttribute("aria-label").toLowerCase();
