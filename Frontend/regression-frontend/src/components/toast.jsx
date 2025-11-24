@@ -23,7 +23,7 @@ const TOAST_POSITIONS = {
 // Default configuration for toasts
 const defaultConfig = {
   position: TOAST_POSITIONS.TOP_RIGHT,
-  autoClose: 3000,
+  autoClose: 2000,
   hideProgressBar: false,
   closeOnClick: true,
   pauseOnHover: true,
