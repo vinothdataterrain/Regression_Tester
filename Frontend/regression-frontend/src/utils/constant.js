@@ -26,6 +26,7 @@ export const PLAYWRIGHT_ACTIONS = [
     value: "use",
     label: "Use login state",
     field : "",
+    icon: "💾",
     description: "Use existing login flow",
     example: "project.json"
   },
@@ -33,6 +34,7 @@ export const PLAYWRIGHT_ACTIONS = [
     value : "save",
     label : "save login state",
     field : "",
+    icon: "💾",
     description: "Save login flow",
     example: "project.json"
   },
